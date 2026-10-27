@@ -4003,12 +4003,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "panel-metrics"
+version = "0.1.0"
+
+[[package]]
 name = "panel-model"
 version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
  "thiserror 2.0.21",
+]
+
+[[package]]
+name = "panel-platform"
+version = "0.1.0"
+
+[[package]]
+name = "panel-platform-linux"
+version = "0.1.0"
+dependencies = [
+ "panel-platform",
+]
+
+[[package]]
+name = "panel-platform-macos"
+version = "0.1.0"
+dependencies = [
+ "panel-platform",
+]
+
+[[package]]
+name = "panel-platform-windows"
+version = "0.1.0"
+dependencies = [
+ "panel-platform",
 ]
 
 [[package]]

@@ -794,6 +794,115 @@ mod tests {
     }
 
     #[test]
+    fn duplicate_interface_ids_invalidate_network_and_clear_baselines() {
+        let mut sampler = sampler(
+            [
+                sample(
+                    CpuCounters {
+                        total_ticks: 1,
+                        idle_ticks: 0,
+                    },
+                    vec![interface("en0", 100, 100)],
+                ),
+                sample(
+                    CpuCounters {
+                        total_ticks: 2,
+                        idle_ticks: 0,
+                    },
+                    vec![interface("en0", 200, 200), interface("en0", 300, 300)],
+                ),
+                sample(
+                    CpuCounters {
+                        total_ticks: 3,
+                        idle_ticks: 0,
+                    },
+                    vec![interface("en0", 400, 400)],
+                ),
+            ],
+            [
+                Duration::from_secs(1),
+                Duration::from_secs(2),
+                Duration::from_secs(3),
+            ],
+        );
+
+        sampler.sample().unwrap();
+        assert_eq!(
+            sampler.sample().unwrap().network,
+            Reading::Unavailable(UnavailableReason::InvalidSample)
+        );
+        let Reading::Available(network) = sampler.sample().unwrap().network else {
+            panic!("network should be available");
+        };
+        assert_eq!(
+            network[0].rate,
+            Reading::Unavailable(UnavailableReason::WarmingUp)
+        );
+    }
+
+    #[test]
+    fn zero_counter_deltas_produce_zero_rates_but_not_cpu_percentages() {
+        let repeated = sample(
+            CpuCounters {
+                total_ticks: 100,
+                idle_ticks: 40,
+            },
+            vec![interface("en0", 100, 200)],
+        );
+        let mut sampler = sampler(
+            [repeated.clone(), repeated],
+            [Duration::from_secs(1), Duration::from_secs(2)],
+        );
+
+        sampler.sample().unwrap();
+        let second = sampler.sample().unwrap();
+        assert_eq!(
+            second.cpu_usage_percent,
+            Reading::Unavailable(UnavailableReason::InvalidSample)
+        );
+        let Reading::Available(network) = second.network else {
+            panic!("network should be available");
+        };
+        assert_eq!(
+            network[0].rate,
+            Reading::Available(NetworkRate {
+                received_bytes_per_second: 0.0,
+                transmitted_bytes_per_second: 0.0,
+            })
+        );
+    }
+
+    #[test]
+    fn zero_capacity_is_invalid_and_percentages_include_both_bounds() {
+        assert_eq!(
+            normalize_memory(Reading::Available(RawMemory {
+                total_bytes: 0,
+                available_bytes: 0,
+            })),
+            Reading::Unavailable(UnavailableReason::InvalidSample)
+        );
+        assert_eq!(
+            normalize_disks(Reading::Available(vec![RawDisk {
+                id: "empty".into(),
+                name: "Empty".into(),
+                mount_point: "/empty".into(),
+                total_bytes: 0,
+                available_bytes: 0,
+            }])),
+            Reading::Available(vec![DiskMetrics {
+                id: "empty".into(),
+                name: "Empty".into(),
+                mount_point: "/empty".into(),
+                total_bytes: 0,
+                used_bytes: 0,
+                usage_percent: Reading::Unavailable(UnavailableReason::InvalidSample),
+            }])
+        );
+        assert_eq!(clamp_percent(-f64::EPSILON), 0.0);
+        assert_eq!(clamp_percent(100.1), 100.0);
+    }
+
+    #[test]
     fn hidden_sampling_can_be_reduced_or_paused() {
         let reduced =
             SamplingPolicy::new(Duration::from_secs(1), Some(Duration::from_secs(30))).unwrap();

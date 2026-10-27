@@ -4,7 +4,12 @@ members = [
     "crates/panel-core",
     "crates/panel-config",
     "crates/panel-http",
+    "crates/panel-metrics",
     "crates/panel-model",
+    "crates/panel-platform",
+    "crates/panel-platform-linux",
+    "crates/panel-platform-macos",
+    "crates/panel-platform-windows",
     "crates/panel-plugin-api",
     "crates/panel-plugin-host",
     "crates/panel-plugin-runtime-extism",
@@ -28,7 +33,12 @@ http = "1.3"
 panel-core = { path = "crates/panel-core" }
 panel-config = { path = "crates/panel-config" }
 panel-http = { path = "crates/panel-http" }
+panel-metrics = { path = "crates/panel-metrics" }
 panel-model = { path = "crates/panel-model" }
+panel-platform = { path = "crates/panel-platform" }
+panel-platform-linux = { path = "crates/panel-platform-linux" }
+panel-platform-macos = { path = "crates/panel-platform-macos" }
+panel-platform-windows = { path = "crates/panel-platform-windows" }
 panel-plugin-api = { path = "crates/panel-plugin-api" }
 panel-plugin-host = { path = "crates/panel-plugin-host" }
 panel-plugin-runtime-extism = { path = "crates/panel-plugin-runtime-extism" }
