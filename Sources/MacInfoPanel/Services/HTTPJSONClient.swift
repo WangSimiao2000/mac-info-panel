@@ -62,10 +62,17 @@ struct HTTPJSONClient: Sendable {
 
         var request = URLRequest(url: source.url)
         request.httpMethod = "GET"
-        let (data, response) = try await session.data(for: request)
+        let (bytes, response) = try await session.bytes(for: request)
         guard let http = response as? HTTPURLResponse else { throw ClientError.invalidJSON }
         guard (200..<300).contains(http.statusCode) else { throw ClientError.badStatus(http.statusCode) }
-        guard data.count <= 1_048_576 else { throw ClientError.responseTooLarge }
+        let limit = 1_048_576
+        if http.expectedContentLength > Int64(limit) { throw ClientError.responseTooLarge }
+        var data = Data()
+        data.reserveCapacity(min(limit, max(0, Int(http.expectedContentLength))))
+        for try await byte in bytes {
+            guard data.count < limit else { throw ClientError.responseTooLarge }
+            data.append(byte)
+        }
         guard let json = try? JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) else {
             throw ClientError.invalidJSON
         }
