@@ -2,6 +2,7 @@
 members = [
     "apps/desktop",
     "crates/panel-core",
+    "crates/panel-config",
     "crates/panel-model",
     "crates/panel-plugin-api",
     "crates/panel-plugin-host",
@@ -20,6 +21,7 @@ repository = "https://github.com/WangSimiao2000/mac-info-panel"
 [workspace.dependencies]
 extism = { version = "1.41.0", default-features = false, features = ["wasmtime-default-features"] }
 panel-core = { path = "crates/panel-core" }
+panel-config = { path = "crates/panel-config" }
 panel-model = { path = "crates/panel-model" }
 panel-plugin-api = { path = "crates/panel-plugin-api" }
 panel-plugin-host = { path = "crates/panel-plugin-host" }

@@ -1,0 +1,24 @@
+{
+  // Info Panel 的独立配置格式，不兼容旧 Mac Info Panel 配置。
+  "schemaVersion": 1,
+  "display": {
+    "nameContains": null,
+    "padding": 10
+  },
+  "behavior": {
+    "initialPage": "overview",
+    "autoRotateSeconds": 20
+  },
+  "appearance": {
+    "scale": 1.0,
+    "reduceMotion": false
+  },
+  "pages": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "kind": "builtIn"
+    }
+  ],
+  "plugins": []
+}
