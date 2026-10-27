@@ -8,6 +8,7 @@ repository.workspace = true
 build = "build.rs"
 
 [dependencies]
+panel-model.workspace = true
 slint.workspace = true
 
 [build-dependencies]
