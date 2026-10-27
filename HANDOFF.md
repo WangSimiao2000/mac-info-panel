@@ -2,7 +2,7 @@
 
 ## Snapshot
 
-Handoff date: 2026-10-27
+Handoff date: 2026-10-28
 
 Repository path:
 
@@ -17,11 +17,13 @@ Branches:
 - `main`: Rust-only Info Panel implementation
 - `legacy/swift`: final pure Swift version at `be0789a`
 
-At handoff, `main` is five commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
+At handoff, `main` is seven commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
 
 Recent migration commits:
 
 ```text
+f02e3c0 实现安全宿主 HTTP 客户端
+3817e79 添加 KiroCrew 工程交接包
 c6e7120 实现统一应用状态与事件归约
 9a2d056 实现 Info Panel 独立配置格式
 5d62cac 将 Swift 版本归档到遗留分支
@@ -41,6 +43,12 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - Extism 1.41.0 runtime adapter with timeout.
 - Plugin manifest, request, response, host loading, and output validation.
 - Structural network-origin validation, including rejection of credentials and fake localhost domains.
+- Secure host HTTP client with exact origin permissions and injected IO.
+- HTTPS-first policy with resolved loopback checks for plain HTTP.
+- DNS rebinding defense, pinned addresses, and redirect hop revalidation.
+- Separate connect, request, and whole-resource timeouts.
+- Bounded streamed responses, redirect hops, concurrency, and per-plugin request rates.
+- Cookies and redirects disabled by default; typed errors omit sensitive request data.
 - Real Rust-to-WASM example plugin and real Extism invocation test.
 - Independent Info Panel JSONC schemaVersion 1 configuration.
 - JSONC parser that preserves comment markers inside strings.
@@ -57,7 +65,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 21 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
+It covered 41 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
 
 Release desktop build also passed previously:
 
@@ -69,7 +77,7 @@ cargo build --release -p info-panel
 
 - The Slint window is static; it does not render `AppState` or `PageModel` yet.
 - Desktop startup does not load `config.example.jsonc`.
-- No HTTP host client exists.
+- `panel-http` is not yet exposed to plugins or wired into host functions.
 - Extism timeout exists, but memory and output limits are incomplete.
 - Manifest does not yet declare `runtime: wasm@1 | lua@1`.
 - Lua-in-WASM runner does not exist.
@@ -93,14 +101,13 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Implement `panel-http` and its security tests.
-2. Finish plugin manifest runtime selection and hard resource limits.
-3. Connect configuration to desktop startup and core state.
-4. Implement PageModel-to-Slint rendering.
-5. Add platform traits and generic metrics.
-6. Prototype Lua-in-WASM runner after the host limits are complete.
-7. Implement plugin packaging and `plugin-cli`.
-8. Create MC Ops as a separate repository only after user approval for remote repository creation.
+1. Finish plugin manifest runtime selection and hard resource limits.
+2. Connect configuration to desktop startup and core state.
+3. Implement PageModel-to-Slint rendering.
+4. Add platform traits and generic metrics.
+5. Prototype Lua-in-WASM runner after the host limits are complete.
+6. Implement plugin packaging and `plugin-cli`.
+7. Create MC Ops as a separate repository only after user approval for remote repository creation.
 
 Prompts for these work items are under `.kiro/handoff/prompts/`.
 
