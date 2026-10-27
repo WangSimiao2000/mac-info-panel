@@ -17,11 +17,13 @@ Branches:
 - `main`: Rust-only Info Panel implementation
 - `legacy/swift`: final pure Swift version at `be0789a`
 
-At handoff, `main` is twenty-three commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
+At handoff, `main` is twenty-five commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
 
 Recent migration commits:
 
 ```text
+84e2678 实现受限 Lua-in-WASM 运行器
+5164578 更新跨平台指标交接状态
 180e0c2 实现跨平台系统指标源
 c4dd321 更新 Slint 渲染交接状态
 268d71a 实现 Slint 语义页面渲染器
@@ -145,8 +147,8 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Implement remaining native platform services.
-2. Implement plugin packaging and `plugin-cli`.
+1. Implement plugin packaging and `plugin-cli`.
+2. Implement remaining native platform services.
 3. Create MC Ops as a separate repository only after user approval for remote repository creation.
 
 Prompts for these work items are under `.kiro/handoff/prompts/`.
