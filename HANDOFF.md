@@ -17,11 +17,13 @@ Branches:
 - `main`: Rust-only Info Panel implementation
 - `legacy/swift`: final pure Swift version at `be0789a`
 
-At handoff, `main` is seventeen commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
+At handoff, `main` is nineteen commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
 
 Recent migration commits:
 
 ```text
+3a6035f 加固插件协议与运行时边界
+c0c53ce 更新页面视图转换交接状态
 6c4bb1b 补强页面布局参数校验
 fe8ebd2 实现 PageModel 视图转换
 4d7f69d 更新平台与指标交接状态
@@ -126,12 +128,11 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Finish plugin manifest runtime selection and hard resource limits.
-2. Connect `PageView` to generated tokens and Slint components.
-3. Implement native platform services and metrics sources.
-4. Prototype Lua-in-WASM runner after the host limits are complete.
-5. Implement plugin packaging and `plugin-cli`.
-6. Create MC Ops as a separate repository only after user approval for remote repository creation.
+1. Connect `PageView` to generated tokens and Slint components.
+2. Implement native platform services and metrics sources.
+3. Prototype Lua-in-WASM runner after the host limits are complete.
+4. Implement plugin packaging and `plugin-cli`.
+5. Create MC Ops as a separate repository only after user approval for remote repository creation.
 
 Prompts for these work items are under `.kiro/handoff/prompts/`.
 
