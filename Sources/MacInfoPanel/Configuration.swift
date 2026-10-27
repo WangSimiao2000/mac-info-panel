@@ -73,6 +73,25 @@ struct PanelConfiguration: Codable, Sendable {
         var title: String
         var kind: Kind
         var sourceID: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case id, title, kind, sourceID
+        }
+
+        init(id: String, title: String, kind: Kind, sourceID: String?) {
+            self.id = id
+            self.title = title
+            self.kind = kind
+            self.sourceID = sourceID
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            title = try container.decodeIfPresent(String.self, forKey: .title) ?? id
+            kind = try container.decode(Kind.self, forKey: .kind)
+            sourceID = try container.decodeIfPresent(String.self, forKey: .sourceID)
+        }
     }
 
     struct HTTPJSONSource: Codable, Sendable, Identifiable {
@@ -110,6 +129,21 @@ struct PanelConfiguration: Codable, Sendable {
         var refreshSeconds: Double
         var staleAfterSeconds: Double
         var fields: [Field]
+
+        private enum CodingKeys: String, CodingKey {
+            case id, title, symbol, url, refreshSeconds, staleAfterSeconds, fields
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            title = try container.decodeIfPresent(String.self, forKey: .title) ?? id
+            symbol = try container.decodeIfPresent(String.self, forKey: .symbol) ?? "network"
+            url = try container.decode(URL.self, forKey: .url)
+            refreshSeconds = try container.decodeIfPresent(Double.self, forKey: .refreshSeconds) ?? 60
+            staleAfterSeconds = try container.decodeIfPresent(Double.self, forKey: .staleAfterSeconds) ?? 300
+            fields = try container.decode([Field].self, forKey: .fields)
+        }
     }
 
     var schemaVersion: Int
