@@ -17,11 +17,14 @@ Branches:
 - `main`: Rust-only Info Panel implementation
 - `legacy/swift`: final pure Swift version at `be0789a`
 
-At handoff, `main` is fourteen commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
+At handoff, `main` is seventeen commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
 
 Recent migration commits:
 
 ```text
+6c4bb1b 补强页面布局参数校验
+fe8ebd2 实现 PageModel 视图转换
+4d7f69d 更新平台与指标交接状态
 59f4f91 集成平台与指标工作区
 a4a10a5 实现通用指标采样逻辑
 25a3dad 定义平台能力与服务契约
@@ -70,6 +73,9 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - Safe CPU and network deltas, per-interface baselines, and reset handling.
 - Visibility-aware sampling policy and bounded metric normalization.
 - Automatic page rotation, visibility behavior, plugin generation race protection, bounded diagnostics.
+- PageModel-to-view conversion for every current widget variant.
+- Adaptive columns, bounded text and lists, chart normalization, and indicator folding.
+- Strict finite layout input validation and Reduce Motion propagation.
 - Pure Swift implementation removed from `main` and retained on `legacy/swift`.
 
 ## Verified baseline
@@ -80,7 +86,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 64 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
+It covered 77 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
 
 Release desktop build also passed previously:
 
@@ -90,7 +96,7 @@ cargo build --release -p info-panel
 
 ## Important limitations
 
-- The Slint window is static; it does not render `AppState` or `PageModel` yet.
+- The Slint window is static; `PageView` conversion is not bound to components yet.
 - `panel-http` is not yet exposed to plugins or wired into host functions.
 - Extism timeout exists, but memory and output limits are incomplete.
 - Manifest does not yet declare `runtime: wasm@1 | lua@1`.
@@ -116,7 +122,7 @@ If a constraint must change, update requirements, design, tasks, and this file i
 ## Recommended execution order
 
 1. Finish plugin manifest runtime selection and hard resource limits.
-2. Implement PageModel-to-Slint rendering.
+2. Connect `PageView` to generated tokens and Slint components.
 3. Implement native platform services and metrics sources.
 4. Prototype Lua-in-WASM runner after the host limits are complete.
 5. Implement plugin packaging and `plugin-cli`.
