@@ -3,6 +3,11 @@
 //! Native Wayland/X11, StatusNotifierItem, XDG autostart, and MPRIS integrations will replace the
 //! explicit unsupported implementation in focused follow-up work.
 
+#[cfg(target_os = "linux")]
+mod metrics;
+#[cfg(target_os = "linux")]
+pub use metrics::LinuxMetricsSource;
+
 use panel_platform::{
     AutostartService, DisplayService, MediaService, PlatformCapabilities, PlatformKind,
     PlatformServices, PlatformSkeleton, TrayService, WindowService,

@@ -3,6 +3,11 @@
 //! Native AppKit, display, tray, autostart, and media integrations will replace the explicit
 //! unsupported implementation in focused follow-up work.
 
+#[cfg(target_os = "macos")]
+mod metrics;
+#[cfg(target_os = "macos")]
+pub use metrics::MacOsMetricsSource;
+
 use panel_platform::{
     AutostartService, DisplayService, MediaService, PlatformCapabilities, PlatformKind,
     PlatformServices, PlatformSkeleton, TrayService, WindowService,

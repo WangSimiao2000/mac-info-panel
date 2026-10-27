@@ -84,7 +84,11 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - Capability-reporting traits for window, displays, tray, autostart, and media.
 - Explicitly unsupported macOS, Windows, and Linux adapter skeletons.
 - Generic metrics sampling with injected source and monotonic clock.
-- Safe CPU and network deltas, per-interface baselines, and reset handling.
+- Real macOS, Windows, and Linux CPU, memory, disk, network, and uptime sources, plus load averages where the platform exposes them, using native cumulative counters and stable volume/interface identifiers.
+- Windows explicitly reports load average as unsupported; all three platforms explicitly report the still-unimplemented thermal state as unsupported.
+- Safe CPU and network deltas, per-interface baselines, reset handling, clock-rollback clearing, and sampler-integrated pause/resume baseline clearing.
+- Generation-bounded metric cancellation checks every platform stage; cancelled synchronous OS calls may finish but cannot cross the atomic completion gate or publish late results.
+- Thread-safe macOS mount enumeration owns and frees independent buffers; Windows disks enumerate local Volume GUIDs rather than drive letters.
 - Visibility-aware sampling policy and bounded metric normalization.
 - Automatic page rotation, visibility behavior, plugin generation race protection, bounded diagnostics.
 - PageModel-to-view conversion for every current widget variant.
@@ -100,7 +104,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 118 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
+It covered 130 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
 
 Release desktop build also passed previously:
 
@@ -116,7 +120,7 @@ cargo build --release -p info-panel
 - Lua-in-WASM runner does not exist, so `lua@1` manifests are intentionally rejected.
 - No plugin package parser, signature verification, plugin CLI, or repository client exists.
 - Platform traits and adapter skeletons exist, but native OS behavior does not.
-- No real metrics, media, lyrics, tray, display-selection, autostart, or installer implementation exists.
+- No real media, lyrics, tray, display-selection, autostart, or installer implementation exists.
 - Cross-platform GitHub Actions were added but have not been observed running remotely.
 - Slint licensing must be reviewed before public binary distribution. Do not assume MIT alone covers the final linked application.
 
@@ -134,7 +138,7 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Implement native platform services and metrics sources.
+1. Implement remaining native platform services.
 2. Prototype Lua-in-WASM runner after the host limits are complete.
 3. Implement plugin packaging and `plugin-cli`.
 4. Create MC Ops as a separate repository only after user approval for remote repository creation.

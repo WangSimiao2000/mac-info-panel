@@ -3,6 +3,11 @@
 //! Native Win32, display, tray, autostart, and GSMTC integrations will replace the explicit
 //! unsupported implementation in focused follow-up work.
 
+#[cfg(target_os = "windows")]
+mod metrics;
+#[cfg(target_os = "windows")]
+pub use metrics::WindowsMetricsSource;
+
 use panel_platform::{
     AutostartService, DisplayService, MediaService, PlatformCapabilities, PlatformKind,
     PlatformServices, PlatformSkeleton, TrayService, WindowService,

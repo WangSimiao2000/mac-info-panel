@@ -4024,6 +4024,8 @@ version = "0.1.0"
 name = "panel-platform-linux"
 version = "0.1.0"
 dependencies = [
+ "libc",
+ "panel-metrics",
  "panel-platform",
 ]
 
@@ -4031,6 +4033,9 @@ dependencies = [
 name = "panel-platform-macos"
 version = "0.1.0"
 dependencies = [
+ "libc",
+ "mach2",
+ "panel-metrics",
  "panel-platform",
 ]
 
@@ -4038,7 +4043,9 @@ dependencies = [
 name = "panel-platform-windows"
 version = "0.1.0"
 dependencies = [
+ "panel-metrics",
  "panel-platform",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
