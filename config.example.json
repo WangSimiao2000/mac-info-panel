@@ -1,12 +1,45 @@
 {
-  "screenName": "Wokyis",
-  "lyricsURL": "http://127.0.0.1:27270/snapshot",
-  "sshHost": "mc.mickeymiao.cn",
-  "sshUser": "mickeymiao",
-  "sshKeyPath": "~/.ssh/id_ed25519_mc_panel",
-  "sshCommand": "mcops-status-v1",
-  "publicStatusURL": "https://blog.mickeymiao.cn/mc-status/status.json",
-  "lyricsRefreshSeconds": 1,
-  "systemRefreshSeconds": 3,
-  "remoteRefreshSeconds": 60
+  "schemaVersion": 1,
+  "display": {
+    "nameContains": "Portable Display",
+    "vendorID": null,
+    "modelID": null,
+    "padding": 10
+  },
+  "behavior": {
+    "initialPage": "overview",
+    "autoRotateSeconds": 20
+  },
+  "lyrics": {
+    "enabled": true,
+    "url": "http://127.0.0.1:27270/snapshot",
+    "refreshSeconds": 1,
+    "autoLaunch": true,
+    "bundleIdentifier": "io.github.zzxzzk115.OmniLyrics"
+  },
+  "pages": [
+    { "id": "overview", "title": "Overview", "kind": "overview", "sourceID": null },
+    { "id": "lyrics", "title": "Lyrics", "kind": "lyrics", "sourceID": null },
+    { "id": "server", "title": "Server", "kind": "httpJSON", "sourceID": "example-server" },
+    { "id": "local", "title": "This Mac", "kind": "localSystem", "sourceID": null }
+  ],
+  "sources": [
+    {
+      "id": "example-server",
+      "title": "Example Server",
+      "symbol": "server.rack",
+      "url": "https://status.example.com/status.json",
+      "refreshSeconds": 60,
+      "staleAfterSeconds": 1200,
+      "fields": [
+        { "id": "online", "label": "Status", "pointer": "/online", "type": "boolean", "style": "status", "trueText": "Online", "falseText": "Offline", "unit": null },
+        { "id": "users", "label": "Users", "pointer": "/users", "type": "number", "style": "value", "trueText": null, "falseText": null, "unit": null },
+        { "id": "cpu", "label": "CPU", "pointer": "/host/cpuPercent", "type": "percent", "style": "gauge", "trueText": null, "falseText": null, "unit": null },
+        { "id": "uptime", "label": "Uptime", "pointer": "/uptimeSeconds", "type": "duration", "style": "value", "trueText": null, "falseText": null, "unit": null }
+      ]
+    }
+  ],
+  "volumes": [
+    { "id": "system", "label": "System", "path": "/" }
+  ]
 }

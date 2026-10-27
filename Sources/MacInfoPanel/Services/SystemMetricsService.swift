@@ -2,27 +2,39 @@ import Darwin
 import Foundation
 
 actor SystemMetricsService {
+    private let configuredVolumes: [PanelConfiguration.Volume]
     private var previousCPU: (used: UInt64, total: UInt64)?
     private var previousNetwork: (received: UInt64, sent: UInt64, date: Date)?
+
+    init(volumes: [PanelConfiguration.Volume]) {
+        configuredVolumes = volumes.isEmpty
+            ? [.init(id: "system", label: "系统盘", path: "/")]
+            : volumes
+    }
 
     func sample() -> SystemMetrics {
         let cpu = cpuUsage()
         let memory = memoryUsage()
-        let root = diskUsage(path: "/")
-        let external = diskUsage(path: "/Volumes/exSSD")
         let network = networkUsage()
         var loads = [Double](repeating: 0, count: 3)
         _ = getloadavg(&loads, 3)
+        let volumes = configuredVolumes.map { volume in
+            let usage = diskUsage(path: NSString(string: volume.path).expandingTildeInPath)
+            return SystemMetrics.Volume(
+                id: volume.id,
+                label: volume.label,
+                path: volume.path,
+                percent: usage?.percent,
+                freeBytes: usage?.free
+            )
+        }
 
         return SystemMetrics(
             cpuPercent: cpu,
             memoryPercent: memory.percent,
             memoryUsedBytes: memory.used,
             memoryTotalBytes: memory.total,
-            rootDiskPercent: root?.percent ?? 0,
-            rootDiskFreeBytes: root?.free ?? 0,
-            externalDiskPercent: external?.percent,
-            externalDiskFreeBytes: external?.free,
+            volumes: volumes,
             networkDownBytesPerSecond: network.receivedPerSecond,
             networkUpBytesPerSecond: network.sentPerSecond,
             loadAverage: (loads[0], loads[1], loads[2]),

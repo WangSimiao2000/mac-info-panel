@@ -1,53 +1,179 @@
 import Foundation
 
-struct PanelConfiguration: Sendable {
-    let screenName: String
-    let lyricsURL: URL
-    let sshHost: String
-    let sshUser: String
-    let sshKeyPath: String
-    let sshCommand: String
-    let publicStatusURL: URL
-    let lyricsRefreshSeconds: Double
-    let systemRefreshSeconds: Double
-    let remoteRefreshSeconds: Double
+struct PanelConfiguration: Codable, Sendable {
+    struct Display: Codable, Sendable {
+        var nameContains: String?
+        var vendorID: UInt32?
+        var modelID: UInt32?
+        var padding: Double
+    }
 
-    static func load() -> PanelConfiguration {
-        let defaults = PanelConfiguration(
-            screenName: "Wokyis",
-            lyricsURL: URL(string: "http://127.0.0.1:27270/snapshot")!,
-            sshHost: "mc.mickeymiao.cn",
-            sshUser: "mickeymiao",
-            sshKeyPath: NSString(string: "~/.ssh/id_ed25519_mc_panel").expandingTildeInPath,
-            sshCommand: "mcops-status-v1",
-            publicStatusURL: URL(string: "https://blog.mickeymiao.cn/mc-status/status.json")!,
-            lyricsRefreshSeconds: 1,
-            systemRefreshSeconds: 3,
-            remoteRefreshSeconds: 60
-        )
+    struct Behavior: Codable, Sendable {
+        var initialPage: String
+        var autoRotateSeconds: Double
+    }
 
+    struct Lyrics: Codable, Sendable {
+        var enabled: Bool
+        var url: URL
+        var refreshSeconds: Double
+        var autoLaunch: Bool
+        var bundleIdentifier: String
+    }
+
+    struct Volume: Codable, Sendable, Identifiable {
+        var id: String
+        var label: String
+        var path: String
+    }
+
+    struct Page: Codable, Sendable, Identifiable {
+        enum Kind: String, Codable, Sendable {
+            case overview
+            case lyrics
+            case httpJSON
+            case localSystem
+        }
+
+        var id: String
+        var title: String
+        var kind: Kind
+        var sourceID: String?
+    }
+
+    struct HTTPJSONSource: Codable, Sendable, Identifiable {
+        struct Field: Codable, Sendable, Identifiable {
+            enum ValueType: String, Codable, Sendable {
+                case string
+                case number
+                case boolean
+                case percent
+                case bytes
+                case duration
+                case date
+            }
+
+            enum Style: String, Codable, Sendable {
+                case value
+                case status
+                case gauge
+            }
+
+            var id: String
+            var label: String
+            var pointer: String
+            var type: ValueType
+            var style: Style
+            var trueText: String?
+            var falseText: String?
+            var unit: String?
+        }
+
+        var id: String
+        var title: String
+        var symbol: String
+        var url: URL
+        var refreshSeconds: Double
+        var staleAfterSeconds: Double
+        var fields: [Field]
+    }
+
+    var schemaVersion: Int
+    var display: Display
+    var behavior: Behavior
+    var lyrics: Lyrics
+    var pages: [Page]
+    var sources: [HTTPJSONSource]
+    var volumes: [Volume]
+
+    static let fallback = PanelConfiguration(
+        schemaVersion: 1,
+        display: .init(nameContains: nil, vendorID: nil, modelID: nil, padding: 10),
+        behavior: .init(initialPage: "overview", autoRotateSeconds: 20),
+        lyrics: .init(
+            enabled: true,
+            url: URL(string: "http://127.0.0.1:27270/snapshot")!,
+            refreshSeconds: 1,
+            autoLaunch: true,
+            bundleIdentifier: "io.github.zzxzzk115.OmniLyrics"
+        ),
+        pages: [
+            .init(id: "overview", title: "总览", kind: .overview, sourceID: nil),
+            .init(id: "lyrics", title: "歌词", kind: .lyrics, sourceID: nil),
+            .init(id: "local", title: "这台 Mac", kind: .localSystem, sourceID: nil),
+        ],
+        sources: [],
+        volumes: []
+    )
+
+    static func load() -> (configuration: PanelConfiguration, warning: String?) {
         let path = NSString(string: "~/.config/mac-info-panel/config.json").expandingTildeInPath
-        guard
-            let data = FileManager.default.contents(atPath: path),
-            let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return defaults }
+        guard FileManager.default.fileExists(atPath: path) else {
+            return (fallback, "未找到配置文件，正在使用通用默认配置")
+        }
 
-        return PanelConfiguration(
-            screenName: object["screenName"] as? String ?? defaults.screenName,
-            lyricsURL: (object["lyricsURL"] as? String).flatMap(URL.init(string:)) ?? defaults.lyricsURL,
-            sshHost: object["sshHost"] as? String ?? defaults.sshHost,
-            sshUser: object["sshUser"] as? String ?? defaults.sshUser,
-            sshKeyPath: NSString(string: object["sshKeyPath"] as? String ?? defaults.sshKeyPath).expandingTildeInPath,
-            sshCommand: object["sshCommand"] as? String ?? defaults.sshCommand,
-            publicStatusURL: (object["publicStatusURL"] as? String).flatMap(URL.init(string:)) ?? defaults.publicStatusURL,
-            lyricsRefreshSeconds: positive(object["lyricsRefreshSeconds"], fallback: defaults.lyricsRefreshSeconds),
-            systemRefreshSeconds: positive(object["systemRefreshSeconds"], fallback: defaults.systemRefreshSeconds),
-            remoteRefreshSeconds: positive(object["remoteRefreshSeconds"], fallback: defaults.remoteRefreshSeconds)
-        )
+        do {
+            let data = try Data(contentsOf: URL(fileURLWithPath: path))
+            var configuration = try JSONDecoder().decode(PanelConfiguration.self, from: data)
+            try configuration.validate()
+            configuration.display.padding = max(0, min(40, configuration.display.padding))
+            configuration.behavior.autoRotateSeconds = clampedInterval(configuration.behavior.autoRotateSeconds, minimum: 0)
+            configuration.lyrics.refreshSeconds = clampedInterval(configuration.lyrics.refreshSeconds, minimum: 0.5)
+            for index in configuration.sources.indices {
+                configuration.sources[index].refreshSeconds = clampedInterval(configuration.sources[index].refreshSeconds, minimum: 5)
+                configuration.sources[index].staleAfterSeconds = max(
+                    configuration.sources[index].refreshSeconds * 2,
+                    configuration.sources[index].staleAfterSeconds
+                )
+            }
+            return (configuration, nil)
+        } catch {
+            return (fallback, "配置无效：\(error.localizedDescription)")
+        }
     }
 
-    private static func positive(_ value: Any?, fallback: Double) -> Double {
-        guard let number = value as? NSNumber, number.doubleValue > 0 else { return fallback }
-        return number.doubleValue
+    private mutating func validate() throws {
+        guard schemaVersion == 1 else { throw ConfigurationError("不支持 schemaVersion \(schemaVersion)") }
+        guard !pages.isEmpty else { throw ConfigurationError("pages 不能为空") }
+        try unique(pages.map(\.id), name: "page id")
+        try unique(sources.map(\.id), name: "source id")
+        try unique(volumes.map(\.id), name: "volume id")
+        if lyrics.enabled {
+            guard let host = lyrics.url.host?.lowercased(), ["127.0.0.1", "localhost", "::1"].contains(host),
+                  ["http", "https"].contains(lyrics.url.scheme?.lowercased() ?? "")
+            else { throw ConfigurationError("歌词接口必须是本机回环 HTTP(S) URL") }
+        }
+
+        let sourceIDs = Set(sources.map(\.id))
+        for page in pages where page.kind == .httpJSON {
+            guard let sourceID = page.sourceID, sourceIDs.contains(sourceID) else {
+                throw ConfigurationError("页面 \(page.id) 引用了不存在的数据源")
+            }
+        }
+        for source in sources {
+            try HTTPJSONClient.validateURL(source.url)
+            guard !source.fields.isEmpty else { throw ConfigurationError("数据源 \(source.id) 没有字段") }
+            try unique(source.fields.map(\.id), name: "field id in \(source.id)")
+            for field in source.fields where !field.pointer.isEmpty && !field.pointer.hasPrefix("/") {
+                throw ConfigurationError("JSON Pointer 必须为空或以 / 开头：\(field.pointer)")
+            }
+        }
     }
+
+    private static func clampedInterval(_ value: Double, minimum: Double) -> Double {
+        guard value.isFinite else { return max(minimum, 1) }
+        if value == 0 && minimum == 0 { return 0 }
+        return max(minimum, min(3_600, value))
+    }
+
+    private func unique(_ values: [String], name: String) throws {
+        guard Set(values).count == values.count else { throw ConfigurationError("存在重复的 \(name)") }
+        guard values.allSatisfy({ !$0.isEmpty }) else { throw ConfigurationError("\(name) 不能为空") }
+    }
+}
+
+private struct ConfigurationError: LocalizedError {
+    let message: String
+    init(_ message: String) { self.message = message }
+    var errorDescription: String? { message }
 }

@@ -5,16 +5,20 @@ import SwiftUI
 private final class PassivePanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
+
+    override func constrainFrameRect(_ frameRect: NSRect, to screen: NSScreen?) -> NSRect {
+        frameRect
+    }
 }
 
 @MainActor
 final class PanelWindowController {
-    private let screenName: String
+    private let display: PanelConfiguration.Display
     private let panel: PassivePanel
     private var screenObserver: NSObjectProtocol?
 
-    init(model: DashboardModel, screenName: String) {
-        self.screenName = screenName
+    init(model: DashboardModel, display: PanelConfiguration.Display) {
+        self.display = display
         panel = PassivePanel(
             contentRect: .zero,
             styleMask: [.borderless, .nonactivatingPanel],
@@ -22,8 +26,8 @@ final class PanelWindowController {
             defer: false
         )
         panel.contentView = NSHostingView(rootView: DashboardView(model: model))
-        panel.backgroundColor = .black
-        panel.isOpaque = true
+        panel.backgroundColor = .clear
+        panel.isOpaque = false
         panel.hasShadow = false
         panel.level = .normal
         panel.hidesOnDeactivate = false
@@ -45,11 +49,8 @@ final class PanelWindowController {
     }
 
     func toggle() {
-        if panel.isVisible {
-            panel.orderOut(nil)
-        } else {
-            placeOnTargetScreen()
-        }
+        if panel.isVisible { panel.orderOut(nil) }
+        else { placeOnTargetScreen() }
     }
 
     private func placeOnTargetScreen() {
@@ -57,24 +58,33 @@ final class PanelWindowController {
             panel.orderOut(nil)
             return
         }
-        panel.setFrame(screen.frame, display: true)
+        let padding = max(0, display.padding)
+        var frame = screen.visibleFrame.insetBy(dx: padding, dy: padding)
+        let visibleDoesNotReserveMenuBar = abs(screen.visibleFrame.maxY - screen.frame.maxY) < 1
+            && abs(screen.visibleFrame.height - screen.frame.height) < 1
+        if visibleDoesNotReserveMenuBar {
+            frame.size.height = max(100, frame.height - max(30, NSStatusBar.system.thickness))
+        }
+        panel.setFrame(frame, display: true)
         panel.orderFrontRegardless()
     }
 
     private func targetScreen() -> NSScreen? {
-        if let named = NSScreen.screens.first(where: { $0.localizedName.localizedCaseInsensitiveContains(screenName) }) {
-            return named
+        if let name = display.nameContains, !name.isEmpty,
+           let screen = NSScreen.screens.first(where: { $0.localizedName.localizedCaseInsensitiveContains(name) }) {
+            return screen
         }
-        if let hardwareMatch = NSScreen.screens.first(where: isWokyis) {
-            return hardwareMatch
+        if let vendorID = display.vendorID, let modelID = display.modelID,
+           let screen = NSScreen.screens.first(where: { hardwareMatches($0, vendorID: vendorID, modelID: modelID) }) {
+            return screen
         }
-        return NSScreen.screens.first(where: { $0 != NSScreen.main })
+        return NSScreen.screens.first(where: { $0 != NSScreen.main }) ?? NSScreen.main
     }
 
-    private func isWokyis(_ screen: NSScreen) -> Bool {
+    private func hardwareMatches(_ screen: NSScreen, vendorID: UInt32, modelID: UInt32) -> Bool {
         let key = NSDeviceDescriptionKey("NSScreenNumber")
         guard let number = screen.deviceDescription[key] as? NSNumber else { return false }
         let displayID = CGDirectDisplayID(number.uint32Value)
-        return CGDisplayVendorNumber(displayID) == 0x1253 && CGDisplayModelNumber(displayID) == 0x2555
+        return CGDisplayVendorNumber(displayID) == vendorID && CGDisplayModelNumber(displayID) == modelID
     }
 }

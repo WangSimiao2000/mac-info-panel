@@ -7,7 +7,7 @@
   <key>CFBundleExecutable</key>
   <string>MacInfoPanel</string>
   <key>CFBundleIdentifier</key>
-  <string>cn.mickeymiao.mac-info-panel</string>
+  <string>io.github.WangSimiao2000.MacInfoPanel</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
   <key>CFBundleName</key>

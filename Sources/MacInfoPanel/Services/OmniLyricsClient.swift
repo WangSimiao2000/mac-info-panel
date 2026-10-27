@@ -9,6 +9,9 @@ struct OmniLyricsClient: Sendable {
             request.cachePolicy = .reloadIgnoringLocalCacheData
             request.timeoutInterval = 2
             let (data, response) = try await URLSession.shared.data(for: request)
+            guard data.count <= 1_048_576 else {
+                return failure("OmniLyrics 响应过大")
+            }
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 return failure("OmniLyrics 接口不可用")
             }
