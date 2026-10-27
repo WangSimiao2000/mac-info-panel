@@ -17,11 +17,13 @@ Branches:
 - `main`: Rust-only Info Panel implementation
 - `legacy/swift`: final pure Swift version at `be0789a`
 
-At handoff, `main` is twenty-one commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
+At handoff, `main` is twenty-three commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
 
 Recent migration commits:
 
 ```text
+180e0c2 实现跨平台系统指标源
+c4dd321 更新 Slint 渲染交接状态
 268d71a 实现 Slint 语义页面渲染器
 81bfb55 更新插件运行时交接状态
 3a6035f 加固插件协议与运行时边界
@@ -138,8 +140,8 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Implement remaining native platform services.
-2. Prototype Lua-in-WASM runner after the host limits are complete.
+1. Prototype the restricted Lua-in-WASM runner.
+2. Implement remaining native platform services.
 3. Implement plugin packaging and `plugin-cli`.
 4. Create MC Ops as a separate repository only after user approval for remote repository creation.
 
