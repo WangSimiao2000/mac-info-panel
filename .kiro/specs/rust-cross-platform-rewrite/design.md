@@ -1,4 +1,4 @@
-# Mac Info Panel Rust 跨平台重构设计
+# Info Panel Rust 跨平台重构设计
 
 ## 1. 架构决策
 
@@ -13,6 +13,8 @@
 首版使用 Extism 承载 WebAssembly 插件。业务代码只依赖 `PluginRuntime` trait，Extism 封装位于单独 crate，避免协议与运行时绑定。
 
 插件通信使用版本化 serde 数据模型。首版使用 JSON 作为 ABI payload，优先保证可调试性和多语言插件开发体验；后续可在 API 大版本中增加 MessagePack 或 Component Model adapter。
+
+Lua 插件不直接嵌入宿主原生 Lua VM。宿主加载受控的 `lua-runner.wasm`，再将 `plugin.lua`、配置和调用上下文传入 runner。Lua 和原生 WASM 插件共享同一权限检查、超时、内存限制和 `PageModel` 验证流程。公共插件仓库不接受 C ABI 动态库。
 
 ### 1.3 异步运行时
 
@@ -212,7 +214,7 @@ host.platform()
 
 ## 8. 插件包与索引
 
-`.mip-plugin` 使用确定性 ZIP。manifest 示例：
+`.info-panel-plugin` 使用确定性 ZIP。manifest 示例：
 
 ```json
 {
@@ -247,9 +249,9 @@ host.platform()
 插件配置存放：
 
 ```text
-macOS:  ~/Library/Application Support/Mac Info Panel/plugins/<id>/
-Windows: %APPDATA%/Mac Info Panel/plugins/<id>/
-Linux:  $XDG_CONFIG_HOME/mac-info-panel/plugins/<id>/
+macOS:  ~/Library/Application Support/Info Panel/plugins/<id>/
+Windows: %APPDATA%/Info Panel/plugins/<id>/
+Linux:  $XDG_CONFIG_HOME/info-panel/plugins/<id>/
 ```
 
 读取旧配置时仍兼容 `~/.config/mac-info-panel/config.jsonc`。

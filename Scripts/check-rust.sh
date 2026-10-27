@@ -23,6 +23,6 @@ cargo build \
   --target wasm32-unknown-unknown \
   --release
 
-PLUGIN_WASM="$ROOT/plugins/example-status/target/wasm32-unknown-unknown/release/mac_info_panel_plugin_example_status.wasm"
-MIP_EXAMPLE_PLUGIN_WASM="$PLUGIN_WASM" \
+PLUGIN_WASM="$ROOT/plugins/example-status/target/wasm32-unknown-unknown/release/info_panel_plugin_example_status.wasm"
+INFO_PANEL_EXAMPLE_PLUGIN_WASM="$PLUGIN_WASM" \
   cargo test -p panel-plugin-host --test real_extism_plugin -- --ignored

@@ -239,6 +239,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "info-panel-plugin-example-status"
+version = "0.1.0"
+dependencies = [
+ "extism-pdk",
+ "panel-model",
+ "panel-plugin-api",
+]
+
+[[package]]
 name = "itertools"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -258,15 +267,6 @@ name = "litemap"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
-
-[[package]]
-name = "mac-info-panel-plugin-example-status"
-version = "0.1.0"
-dependencies = [
- "extism-pdk",
- "panel-model",
- "panel-plugin-api",
-]
 
 [[package]]
 name = "manyhow"

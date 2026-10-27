@@ -7,9 +7,9 @@ use panel_plugin_runtime_extism::ExtismRuntime;
 #[test]
 #[ignore = "requires the example plugin to be built for wasm32-unknown-unknown"]
 fn loads_and_calls_real_extism_plugin() {
-    let path = std::env::var_os("MIP_EXAMPLE_PLUGIN_WASM")
+    let path = std::env::var_os("INFO_PANEL_EXAMPLE_PLUGIN_WASM")
         .map(PathBuf::from)
-        .expect("MIP_EXAMPLE_PLUGIN_WASM must point to the built plugin");
+        .expect("INFO_PANEL_EXAMPLE_PLUGIN_WASM must point to the built plugin");
     let wasm = std::fs::read(path).expect("failed to read example plugin");
     let manifest = PluginManifest {
         manifest_version: 1,

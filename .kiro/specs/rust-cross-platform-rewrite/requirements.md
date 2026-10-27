@@ -1,4 +1,4 @@
-# Mac Info Panel Rust 跨平台重构需求
+# Info Panel Rust 跨平台重构需求
 
 ## 1. 目标
 
@@ -69,10 +69,15 @@
 
 ### 5.1 插件格式
 
-插件包扩展名为 `.mip-plugin`，至少包含：
+插件包扩展名为 `.info-panel-plugin`，入口必须是以下一种：
+
+- `plugin.wasm`：编译型 WASM 插件
+- `plugin.lua`：由宿主提供的受限 Lua-in-WASM runner 执行
+
+插件包至少包含：
 
 - `manifest.json`
-- `plugin.wasm`
+- `plugin.wasm` 或 `plugin.lua`
 - `config.schema.json`（可选）
 - `README.md`
 - `LICENSE`
@@ -91,11 +96,12 @@
 ### 5.2 插件运行时
 
 1. 插件使用 WebAssembly 沙箱运行；首版宿主运行时采用 Extism，并通过内部 trait 隔离具体运行时。
-2. 插件只能通过版本化的 `panel-plugin-api` 与宿主通信。
-3. 插件返回语义化 `PageModel`，不得返回任意 UI 代码。
-4. 插件崩溃、超时或产生非法模型时，只影响自身页面。
-5. 宿主必须限制插件执行时间、内存、输出大小、请求频率、缓存容量、文本长度和组件数量。
-6. 插件 API 必须支持向后兼容策略和兼容性测试夹具。
+2. 插件可以直接提供 WASM，或提供由受限 Lua-in-WASM runner 执行的 Lua 源码；两者具有相同的权限和页面模型边界。
+3. 插件只能通过版本化的 `panel-plugin-api` 与宿主通信。
+4. 插件返回语义化 `PageModel`，不得返回任意 UI 代码。
+5. 插件崩溃、超时或产生非法模型时，只影响自身页面。
+6. 宿主必须限制插件执行时间、内存、输出大小、请求频率、缓存容量、文本长度和组件数量。
+7. 插件 API 必须支持向后兼容策略和兼容性测试夹具。
 
 ### 5.3 权限
 

@@ -2739,6 +2739,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "info-panel"
+version = "0.1.0"
+dependencies = [
+ "panel-core",
+ "panel-ui",
+ "slint",
+]
+
+[[package]]
 name = "input"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3149,15 +3158,6 @@ checksum = "5c463f9c428b7fc5ec885dcd39ce4aa61e29111d0e33483f6f98c74e89d8621e"
 dependencies = [
  "lyon_geom",
  "num-traits",
-]
-
-[[package]]
-name = "mac-info-panel"
-version = "0.1.0"
-dependencies = [
- "panel-core",
- "panel-ui",
- "slint",
 ]
 
 [[package]]
