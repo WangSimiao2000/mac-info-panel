@@ -7,11 +7,13 @@ struct DashboardView: View {
   var body: some View {
     VStack(spacing: 12) {
       topBar
-      pageContent
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .id(model.selectedPage.id)
-        .transition(pageTransition)
-        .animation(pageAnimation, value: model.selectedPageIndex)
+      ZStack {
+        pageContent
+          .id(model.selectedPage.id)
+          .transition(pageTransition)
+      }
+      .frame(maxWidth: .infinity, maxHeight: .infinity)
+      .animation(pageAnimation, value: model.selectedPageIndex)
       pageIndicator
     }
     .padding(14)
@@ -83,12 +85,13 @@ struct DashboardView: View {
 
   private var pageTransition: AnyTransition {
     guard !reduceMotion else { return .identity }
-    let insertion: Edge = model.pageTransitionDirection > 0 ? .trailing : .leading
-    let removal: Edge = model.pageTransitionDirection > 0 ? .leading : .trailing
     return .asymmetric(
-      insertion: .move(edge: insertion).combined(with: .opacity).combined(
-        with: .scale(scale: 0.96)),
-      removal: .move(edge: removal).combined(with: .opacity).combined(with: .scale(scale: 0.985))
+      insertion: .offset(x: model.pageTransitionDirection > 0 ? 110 : -110, y: 0)
+        .combined(with: .opacity)
+        .combined(with: .scale(scale: 0.97)),
+      removal: .offset(x: model.pageTransitionDirection > 0 ? -90 : 90, y: 0)
+        .combined(with: .opacity)
+        .combined(with: .scale(scale: 0.985))
     )
   }
 
