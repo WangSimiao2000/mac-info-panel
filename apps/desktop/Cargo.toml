@@ -9,5 +9,6 @@ repository.workspace = true
 [dependencies]
 panel-config.workspace = true
 panel-core.workspace = true
+panel-model.workspace = true
 panel-ui.workspace = true
 slint.workspace = true

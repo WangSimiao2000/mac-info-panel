@@ -47,8 +47,11 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - Rust 1.99.1 pinned with rustfmt and Clippy.
 - `wasm32-unknown-unknown` development target.
 - Cargo workspace and macOS/Windows/Linux CI check matrix.
-- Slint 1.18.1 static architecture-preview window.
-- Design token seed file at `themes/default/tokens.json`.
+- Slint 1.18.1 token-driven semantic page renderer.
+- Build-time generation of synchronized Rust and Slint design values from `themes/default/tokens.json`.
+- Responsive one-, two-, and three-column layouts with vertical scrolling, bounded long text/lists/charts, visible empty sections, and folded page indicators.
+- Host-owned Slint components for Metric, Status, Gauge, Text, Progress, List, and Chart widgets.
+- Appearance scale and Reduce Motion binding from desktop configuration through the Rust renderer payload.
 - Versioned page model with Metric, Status, Gauge, Text, Progress, List, and Chart widgets.
 - Page-model limits and untrusted identifier/numeric validation.
 - Extism 1.41.0 runtime adapter with checked execution timeout, exact per-call cancellation tokens, real WASM page memory ceiling, pre-copy output ceiling, and a monotonic pre-read `error_set` boundary.
@@ -95,7 +98,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 112 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
+It covered 118 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
 
 Release desktop build also passed previously:
 
@@ -105,7 +108,8 @@ cargo build --release -p info-panel
 
 ## Important limitations
 
-- The Slint window is static; `PageView` conversion is not bound to components yet.
+- The desktop binds the configured initial page and appearance to the renderer, but built-in overview, local-system, and lyrics page data remain future tasks.
+- Semantic page icon registration and display are not implemented; the validated plugin icon identifier is retained as metadata and is never interpreted as a font, file path, or raw glyph.
 - Host HTTP, cache, logging, locale, and platform functions are not yet exposed to plugins; Extism built-in HTTP and WASI remain disabled.
 - Lua-in-WASM runner does not exist, so `lua@1` manifests are intentionally rejected.
 - No plugin package parser, signature verification, plugin CLI, or repository client exists.

@@ -2856,6 +2856,7 @@ version = "0.1.0"
 dependencies = [
  "panel-config",
  "panel-core",
+ "panel-model",
  "panel-ui",
  "slint",
 ]
@@ -4079,8 +4080,11 @@ name = "panel-ui"
 version = "0.1.0"
 dependencies = [
  "panel-model",
+ "serde",
+ "serde_json",
  "slint",
  "slint-build",
+ "thiserror 2.0.21",
 ]
 
 [[package]]

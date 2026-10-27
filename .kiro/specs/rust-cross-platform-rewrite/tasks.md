@@ -85,16 +85,16 @@
 ## 7. Slint UI 和设计系统
 
 - [-] 7.1 从当前 UI 提取 design tokens。
-- [ ] 7.2 创建 token 到 Rust/Slint 的生成流程。
-- [-] 7.3 实现面板根布局和自适应 breakpoints。
-- [ ] 7.4 实现 Metric、Status、Gauge、Text、Progress、List、Chart。
-- [ ] 7.5 实现统一插件页面 renderer。
+- [x] 7.2 创建 token 到 Rust/Slint 的生成流程。
+- [x] 7.3 实现面板根布局和自适应 breakpoints。
+- [x] 7.4 实现 Metric、Status、Gauge、Text、Progress、List、Chart。
+- [x] 7.5 实现统一插件页面 renderer。
 - [ ] 7.6 实现总览页。
 - [ ] 7.7 实现本机状态页。
 - [ ] 7.8 实现歌词页和唱片动画。
 - [ ] 7.9 实现页面转场和 Spring 风格动画。
-- [ ] 7.10 实现 Reduce Motion、文字缩放和高对比度。
-- [ ] 7.11 实现小屏滚动、字段上限和页面指示器折叠。
+- [-] 7.10 实现 Reduce Motion、文字缩放和高对比度。
+- [x] 7.11 实现小屏滚动、字段上限和页面指示器折叠。
 - [ ] 7.12 建立视觉截图测试。
 
 ## 8. 指标、媒体与歌词

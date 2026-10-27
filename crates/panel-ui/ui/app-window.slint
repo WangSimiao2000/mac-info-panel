@@ -1,85 +1,434 @@
-export component AppWindow inherits Window {
-    title: "Info Panel — Rust Preview";
-    width: 900px;
-    height: 540px;
-    background: #11151e;
+import { ScrollView } from "std-widgets.slint";
+import { Theme } from "@theme";
+
+export struct WidgetBlock {
+    kind: int,
+    label: string,
+    value: string,
+    unit: string,
+    detail: string,
+    points: [float],
+    tone: int,
+    fraction: float,
+    column: int,
+    top: float,
+    card-height: float,
+    full-span: bool,
+}
+
+export struct IndicatorItem {
+    label: string,
+    selected: bool,
+    page-index: int,
+}
+
+component Card inherits Rectangle {
+    in property <float> ui-scale: 1;
+    background: Theme.surface;
+    border-radius: Theme.radius-card * root.ui-scale;
+    clip: true;
+    drop-shadow-blur: Theme.shadow-blur * root.ui-scale;
+    drop-shadow-color: Theme.shadow.with-alpha(Theme.shadow-opacity);
+}
+
+component MetricCard inherits Card {
+    in property <string> label;
+    in property <string> value;
+    in property <string> unit;
 
     VerticalLayout {
-        padding: 28px;
-        spacing: 18px;
-
+        padding: Theme.spacing-medium * root.ui-scale;
+        spacing: Theme.spacing-small * root.ui-scale;
         Text {
-            text: "MAC INFO PANEL";
-            color: #aeb8c8;
-            font-size: 14px;
-            font-weight: 700;
+            text: root.label;
+            color: Theme.secondary-foreground;
+            font-size: Theme.font-label * root.ui-scale;
+            font-weight: Theme.font-emphasis-weight;
+            overflow: elide;
         }
-
-        Text {
-            text: "Rust architecture preview";
-            color: #f4f7fb;
-            font-size: 32px;
-            font-weight: 700;
-        }
-
         HorizontalLayout {
-            spacing: 14px;
-
-            Rectangle {
-                background: #1b2230;
-                border-radius: 18px;
+            spacing: Theme.spacing-small * root.ui-scale;
+            Text {
+                text: root.value;
+                color: Theme.foreground;
+                font-size: Theme.font-value * root.ui-scale;
+                font-weight: Theme.font-emphasis-weight;
+                overflow: elide;
                 horizontal-stretch: 1;
-
-                VerticalLayout {
-                    padding: 18px;
-                    spacing: 8px;
-                    Text { text: "CPU"; color: #aeb8c8; font-size: 14px; }
-                    Text { text: "—"; color: #f4f7fb; font-size: 30px; font-weight: 700; }
-                    Text { text: "Waiting for platform adapter"; color: #70a7ff; font-size: 13px; }
-                }
             }
-
-            Rectangle {
-                background: #1b2230;
-                border-radius: 18px;
-                horizontal-stretch: 1;
-
-                VerticalLayout {
-                    padding: 18px;
-                    spacing: 8px;
-                    Text { text: "MEMORY"; color: #aeb8c8; font-size: 14px; }
-                    Text { text: "—"; color: #f4f7fb; font-size: 30px; font-weight: 700; }
-                    Text { text: "Cross-platform model ready"; color: #62d394; font-size: 13px; }
-                }
-            }
-
-            Rectangle {
-                background: #1b2230;
-                border-radius: 18px;
-                horizontal-stretch: 1;
-
-                VerticalLayout {
-                    padding: 18px;
-                    spacing: 8px;
-                    Text { text: "PLUGINS"; color: #aeb8c8; font-size: 14px; }
-                    Text { text: "WASM"; color: #f4f7fb; font-size: 30px; font-weight: 700; }
-                    Text { text: "Sandboxed by default"; color: #f4c66a; font-size: 13px; }
-                }
+            Text {
+                text: root.unit;
+                color: Theme.secondary-foreground;
+                font-size: Theme.font-body * root.ui-scale;
+                vertical-alignment: center;
             }
         }
+    }
+}
 
+component StatusCard inherits Card {
+    in property <string> label;
+    in property <string> value;
+    in property <int> tone;
+    property <color> tone-color: root.tone == 1 ? Theme.success : root.tone == 2 ? Theme.warning : root.tone == 3 ? Theme.danger : Theme.accent;
+
+    VerticalLayout {
+        padding: Theme.spacing-medium * root.ui-scale;
+        spacing: Theme.spacing-small * root.ui-scale;
+        Text {
+            text: root.label;
+            color: Theme.secondary-foreground;
+            font-size: Theme.font-label * root.ui-scale;
+            font-weight: Theme.font-emphasis-weight;
+            overflow: elide;
+        }
+        HorizontalLayout {
+            spacing: Theme.spacing-small * root.ui-scale;
+            Rectangle {
+                width: Theme.status-indicator-size * root.ui-scale;
+                height: Theme.status-indicator-size * root.ui-scale;
+                border-radius: self.width / 2;
+                background: root.tone-color;
+            }
+            Text {
+                text: root.value;
+                color: root.tone-color;
+                font-size: Theme.font-body * root.ui-scale;
+                font-weight: Theme.font-emphasis-weight;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+        }
+    }
+}
+
+component GaugeCard inherits Card {
+    in property <string> label;
+    in property <string> value;
+    in property <float> fraction;
+    in property <bool> reduce-motion;
+
+    VerticalLayout {
+        padding: Theme.spacing-medium * root.ui-scale;
+        spacing: Theme.spacing-small * root.ui-scale;
+        Text {
+            text: root.label;
+            color: Theme.secondary-foreground;
+            font-size: Theme.font-label * root.ui-scale;
+            font-weight: Theme.font-emphasis-weight;
+            overflow: elide;
+        }
+        Text {
+            text: root.value;
+            color: Theme.foreground;
+            font-size: Theme.font-value * root.ui-scale;
+            font-weight: Theme.font-emphasis-weight;
+        }
         Rectangle {
-            height: 76px;
-            background: #252e3e;
-            border-radius: 18px;
+            height: Theme.gauge-track-height * root.ui-scale;
+            border-radius: self.height / 2;
+            background: Theme.surface-elevated;
+            Rectangle {
+                width: parent.width * root.fraction;
+                height: parent.height;
+                border-radius: parent.border-radius;
+                background: Theme.accent;
+                animate width { duration: root.reduce-motion ? 0ms : Theme.motion-fast; easing: ease-in-out; }
+            }
+        }
+    }
+}
 
-            HorizontalLayout {
-                padding: 18px;
+component TextCard inherits Card {
+    in property <string> detail;
+
+    Text {
+        x: Theme.spacing-medium * root.ui-scale;
+        y: Theme.spacing-medium * root.ui-scale;
+        width: parent.width - 2 * self.x;
+        height: parent.height - 2 * self.y;
+        text: root.detail;
+        color: Theme.foreground;
+        font-size: Theme.font-body * root.ui-scale;
+        wrap: word-wrap;
+        overflow: elide;
+        max-lines: Theme.text-max-lines;
+        vertical-alignment: top;
+    }
+}
+
+component ProgressCard inherits Card {
+    in property <string> label;
+    in property <string> value;
+    in property <float> fraction;
+    in property <bool> reduce-motion;
+
+    VerticalLayout {
+        padding: Theme.spacing-medium * root.ui-scale;
+        spacing: Theme.spacing-small * root.ui-scale;
+        HorizontalLayout {
+            Text {
+                text: root.label;
+                color: Theme.secondary-foreground;
+                font-size: Theme.font-label * root.ui-scale;
+                font-weight: Theme.font-emphasis-weight;
+                overflow: elide;
+                horizontal-stretch: 1;
+            }
+            Text {
+                text: root.value;
+                color: Theme.foreground;
+                font-size: Theme.font-body * root.ui-scale;
+            }
+        }
+        Rectangle {
+            height: Theme.progress-track-height * root.ui-scale;
+            border-radius: self.height / 2;
+            background: Theme.surface-elevated;
+            Rectangle {
+                width: parent.width * root.fraction;
+                height: parent.height;
+                border-radius: parent.border-radius;
+                background: Theme.accent;
+                animate width { duration: root.reduce-motion ? 0ms : Theme.motion-fast; easing: ease-in-out; }
+            }
+        }
+    }
+}
+
+component ListCard inherits Card {
+    in property <string> detail;
+
+    Text {
+        x: Theme.spacing-medium * root.ui-scale;
+        y: Theme.spacing-medium * root.ui-scale;
+        width: parent.width - 2 * self.x;
+        height: parent.height - 2 * self.y;
+        text: root.detail;
+        color: Theme.foreground;
+        font-size: Theme.font-body * root.ui-scale;
+        wrap: word-wrap;
+        overflow: elide;
+        vertical-alignment: top;
+    }
+}
+
+component ChartCard inherits Card {
+    in property <string> label;
+    in property <[float]> points;
+
+    VerticalLayout {
+        padding: Theme.spacing-medium * root.ui-scale;
+        spacing: Theme.spacing-small * root.ui-scale;
+        Text {
+            text: root.label;
+            color: Theme.secondary-foreground;
+            font-size: Theme.font-label * root.ui-scale;
+            font-weight: Theme.font-emphasis-weight;
+            overflow: elide;
+        }
+        Rectangle {
+            background: Theme.surface-elevated;
+            border-radius: Theme.spacing-small * root.ui-scale;
+            clip: true;
+            horizontal-stretch: 1;
+            vertical-stretch: 1;
+            for point[index] in root.points: Rectangle {
+                x: index * parent.width / root.points.length;
+                y: parent.height * (1 - point);
+                width: parent.width / root.points.length;
+                height: parent.height * point;
+                background: Theme.accent;
+                border-width: Theme.chart-bar-border-width * root.ui-scale;
+                border-color: Theme.surface-elevated;
+            }
+            if root.points.length == 0: Text {
+                text: "No data";
+                color: Theme.secondary-foreground;
+                font-size: Theme.font-body * root.ui-scale;
+                horizontal-alignment: center;
+                vertical-alignment: center;
+            }
+        }
+    }
+}
+
+component EmptySection inherits Rectangle {
+    in property <float> ui-scale: 1;
+    background: Theme.surface-elevated;
+    border-radius: Theme.radius-card * root.ui-scale;
+    Text {
+        text: "No items";
+        color: Theme.secondary-foreground;
+        font-size: Theme.font-body * root.ui-scale;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+component SectionHeading inherits Rectangle {
+    in property <string> label;
+    in property <float> ui-scale: 1;
+    background: transparent;
+    Text {
+        text: root.label;
+        color: Theme.secondary-foreground;
+        font-size: Theme.font-label * root.ui-scale;
+        font-weight: Theme.font-emphasis-weight;
+        overflow: elide;
+        vertical-alignment: center;
+    }
+}
+
+component WidgetHost inherits Rectangle {
+    in property <WidgetBlock> block;
+    in property <float> ui-scale: 1;
+    in property <bool> reduce-motion;
+    background: transparent;
+
+    if root.block.kind == 0: SectionHeading {
+        label: root.block.label;
+        ui-scale: root.ui-scale;
+    }
+    if root.block.kind == 1: MetricCard {
+        label: root.block.label;
+        value: root.block.value;
+        unit: root.block.unit;
+        ui-scale: root.ui-scale;
+    }
+    if root.block.kind == 2: StatusCard {
+        label: root.block.label;
+        value: root.block.value;
+        tone: root.block.tone;
+        ui-scale: root.ui-scale;
+    }
+    if root.block.kind == 3: GaugeCard {
+        label: root.block.label;
+        value: root.block.value;
+        fraction: root.block.fraction;
+        ui-scale: root.ui-scale;
+        reduce-motion: root.reduce-motion;
+    }
+    if root.block.kind == 4: TextCard {
+        detail: root.block.detail;
+        ui-scale: root.ui-scale;
+    }
+    if root.block.kind == 5: ProgressCard {
+        label: root.block.label;
+        value: root.block.value;
+        fraction: root.block.fraction;
+        ui-scale: root.ui-scale;
+        reduce-motion: root.reduce-motion;
+    }
+    if root.block.kind == 6: ListCard {
+        detail: root.block.detail;
+        ui-scale: root.ui-scale;
+    }
+    if root.block.kind == 7: ChartCard {
+        label: root.block.label;
+        points: root.block.points;
+        ui-scale: root.ui-scale;
+    }
+    if root.block.kind == 8: EmptySection {
+        ui-scale: root.ui-scale;
+    }
+}
+
+export component AppWindow inherits Window {
+    title: "Info Panel";
+    width: Theme.window-width;
+    height: Theme.window-height;
+    background: Theme.background;
+
+    in property <string> page-title: "Info Panel";
+    in property <string> page-icon;
+    in property <float> ui-scale: 1;
+    in property <bool> reduce-motion: false;
+    in property <[WidgetBlock]> blocks-one;
+    in property <[WidgetBlock]> blocks-two;
+    in property <[WidgetBlock]> blocks-three;
+    in property <float> content-height-one;
+    in property <float> content-height-two;
+    in property <float> content-height-three;
+    in property <[IndicatorItem]> indicators;
+    callback select-page(int);
+
+    property <length> logical-width: self.width / root.ui-scale;
+    property <int> column-count: root.logical-width < Theme.breakpoint-medium ? 1 : root.logical-width < Theme.breakpoint-large ? 2 : 3;
+    property <[WidgetBlock]> active-blocks: root.column-count == 1 ? root.blocks-one : root.column-count == 2 ? root.blocks-two : root.blocks-three;
+    property <float> active-content-height: root.column-count == 1 ? root.content-height-one : root.column-count == 2 ? root.content-height-two : root.content-height-three;
+    property <length> scaled-padding: Theme.spacing-large * root.ui-scale;
+    property <length> scaled-gap: Theme.spacing-medium * root.ui-scale;
+    property <length> card-width: (self.width - 2 * root.scaled-padding - (root.column-count - 1) * root.scaled-gap) / root.column-count;
+    property <length> header-height: Theme.header-height * root.ui-scale;
+    property <length> footer-height: Theme.footer-height * root.ui-scale;
+
+    Rectangle {
+        x: root.scaled-padding;
+        y: Theme.spacing-medium * root.ui-scale;
+        width: parent.width - 2 * root.scaled-padding;
+        height: root.header-height - Theme.spacing-medium * root.ui-scale;
+        background: transparent;
+        VerticalLayout {
+            spacing: Theme.heading-gap * root.ui-scale;
+            Text {
+                text: "INFO PANEL";
+                color: Theme.secondary-foreground;
+                font-size: Theme.font-label * root.ui-scale;
+                font-weight: Theme.font-emphasis-weight;
+            }
+            Text {
+                text: root.page-title;
+                color: Theme.foreground;
+                font-size: Theme.font-title * root.ui-scale;
+                font-weight: Theme.font-emphasis-weight;
+                overflow: elide;
+            }
+        }
+    }
+
+    scroll := ScrollView {
+        x: 0;
+        y: root.header-height;
+        width: parent.width;
+        height: parent.height - root.header-height - root.footer-height;
+        content-width: self.width;
+        content-height: root.active-content-height * root.ui-scale * 1px;
+
+        for block in root.active-blocks: WidgetHost {
+            x: root.scaled-padding + block.column * (root.card-width + root.scaled-gap);
+            y: block.top * root.ui-scale * 1px;
+            width: block.full-span ? scroll.width - 2 * root.scaled-padding : root.card-width;
+            height: block.card-height * root.ui-scale * 1px;
+            block: block;
+            ui-scale: root.ui-scale;
+            reduce-motion: root.reduce-motion;
+        }
+    }
+
+    Rectangle {
+        x: root.scaled-padding;
+        y: parent.height - root.footer-height;
+        width: parent.width - 2 * root.scaled-padding;
+        height: root.footer-height;
+        background: transparent;
+        HorizontalLayout {
+            alignment: center;
+            spacing: Theme.spacing-small * root.ui-scale;
+            for indicator in root.indicators: Rectangle {
+                width: Theme.indicator-width * root.ui-scale;
+                height: Theme.indicator-height * root.ui-scale;
+                border-radius: self.height / 2;
+                background: indicator.selected ? Theme.accent : transparent;
                 Text {
-                    text: "Slint UI  •  Rust core  •  Extism plugin runtime";
-                    color: #f4f7fb;
-                    font-size: 16px;
+                    text: indicator.label == "" ? "•" : indicator.label;
+                    color: indicator.selected ? Theme.background : Theme.secondary-foreground;
+                    font-size: Theme.font-label * root.ui-scale;
+                    font-weight: indicator.selected ? Theme.font-emphasis-weight : Theme.font-regular-weight;
+                    horizontal-alignment: center;
+                    vertical-alignment: center;
                 }
+                TouchArea { clicked => { if indicator.label != "…" { root.select-page(indicator.page-index); } } }
             }
         }
     }
