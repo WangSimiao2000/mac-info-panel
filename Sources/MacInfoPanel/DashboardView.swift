@@ -1,171 +1,146 @@
 import SwiftUI
 
+private let accent = Color(red: 0.42, green: 0.72, blue: 1.0)
+
 struct DashboardView: View {
     @ObservedObject var model: DashboardModel
 
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                background
-                .ignoresSafeArea()
-                .accessibilityHidden(true)
-
-                VStack(spacing: 14) {
-                    header
-                    pageContent
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .id(model.selectedPage.id)
-                        .transition(.opacity.combined(with: .scale(scale: 0.985)))
-                    footer
-                }
-                .padding(18)
-            }
-            .frame(width: geometry.size.width, height: geometry.size.height)
-        }
-        .foregroundStyle(.white)
-    }
-
-    private var background: some View {
         ZStack {
             LinearGradient(
-                colors: [
-                    Color(red: 0.025, green: 0.04, blue: 0.075),
-                    Color(red: 0.075, green: 0.045, blue: 0.11),
-                    Color(red: 0.025, green: 0.08, blue: 0.10),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+                colors: [Color(red: 0.035, green: 0.04, blue: 0.055), Color(red: 0.055, green: 0.065, blue: 0.085)],
+                startPoint: .top,
+                endPoint: .bottom
             )
-            Circle()
-                .fill(Color.cyan.opacity(0.16))
-                .frame(width: 420, height: 420)
-                .blur(radius: 90)
-                .offset(x: -430, y: -240)
-            Circle()
-                .fill(Color.purple.opacity(0.18))
-                .frame(width: 440, height: 440)
-                .blur(radius: 110)
-                .offset(x: 430, y: 250)
+            .ignoresSafeArea()
+
+            VStack(spacing: 12) {
+                topBar
+                pageContent
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .id(model.selectedPage.id)
+                    .transition(.opacity)
+                pageIndicator
+            }
+            .padding(14)
         }
+        .foregroundStyle(.white)
+        .environment(\.colorScheme, .dark)
     }
 
-    private var header: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(model.selectedPage.title)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                Text(model.now, format: .dateTime.month().day().weekday(.wide))
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.62))
+    private var topBar: some View {
+        HStack(spacing: 12) {
+            Image(systemName: pageSymbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(accent)
+            Text(model.selectedPage.title)
+                .font(.system(size: 19, weight: .semibold))
+            if let warning = model.configurationWarning {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .help(warning)
             }
             Spacer()
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                if model.autoRotateEnabled {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.cyan)
-                }
-                Text(model.now, format: .dateTime.hour().minute().second())
-                    .font(.system(size: 42, weight: .semibold, design: .rounded))
-                    .monospacedDigit()
-            }
+            Text(model.now, format: .dateTime.month().day().weekday(.abbreviated))
+                .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(.white.opacity(0.56))
+            Text(model.now, format: .dateTime.hour().minute())
+                .font(.system(size: 25, weight: .semibold, design: .rounded))
+                .monospacedDigit()
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 16)
+        .frame(height: 48)
+        .controlGlass(cornerRadius: 18)
     }
 
     @ViewBuilder
     private var pageContent: some View {
         switch model.selectedPage.kind {
-        case .overview:
-            overviewPage
-        case .lyrics:
-            lyricsPage
-        case .httpJSON:
-            sourcePage(sourceID: model.selectedPage.sourceID)
-        case .localSystem:
-            localSystemPage
+        case .overview: overviewPage
+        case .lyrics: lyricsPage
+        case .httpJSON: sourcePage(sourceID: model.selectedPage.sourceID)
+        case .localSystem: localSystemPage
         }
     }
 
     private var overviewPage: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
-            GlassCard(title: "正在播放", symbol: model.lyrics.playing ? "waveform" : "music.note") {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(model.lyrics.title)
-                        .font(.system(size: 27, weight: .bold, design: .rounded))
-                        .lineLimit(1)
-                    Text(model.lyrics.artists)
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Spacer(minLength: 0)
-                    Text(model.lyrics.currentLine)
-                        .font(.system(size: 24, weight: .semibold, design: .rounded))
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.72)
-                    ProgressView(value: model.lyrics.progress).tint(.orange)
+        GeometryReader { geometry in
+            HStack(spacing: 12) {
+                TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
+                    NowPlayingOverview(snapshot: model.lyrics, date: timeline.date)
                 }
-            }
+                .frame(width: geometry.size.width * 0.59)
 
-            if let source = model.configuration.sources.first {
-                sourceOverview(source)
-            } else {
-                GlassCard(title: "网络数据源", symbol: "network") {
-                    emptyState("在配置文件中添加 HTTPS JSON 数据源", symbol: "plus.circle")
-                }
-            }
-
-            GlassCard(title: "这台 Mac", symbol: "macmini") {
                 VStack(spacing: 12) {
-                    gaugeRow("CPU", model.system.cpuPercent)
-                    gaugeRow("内存", model.system.memoryPercent)
-                    valueRow("热状态", model.system.thermalState)
-                    valueRow("运行时间", duration(model.system.uptimeSeconds))
-                }
-            }
-
-            GlassCard(title: "存储与网络", symbol: "externaldrive.connected.to.line.below") {
-                VStack(spacing: 12) {
-                    if let volume = model.system.volumes.first {
-                        gaugeRow(volume.label, volume.percent)
-                        valueRow("可用空间", volume.freeBytes.map(bytes) ?? "未挂载")
+                    if let source = model.configuration.sources.first {
+                        sourceSummary(source)
+                    } else {
+                        ContentSurface {
+                            EmptyState(symbol: "network", title: "没有数据源", detail: "在 config.json 中添加 HTTPS JSON 接口")
+                        }
                     }
-                    valueRow("下载", "↓ \(rate(model.system.networkDownBytesPerSecond))")
-                    valueRow("上传", "↑ \(rate(model.system.networkUpBytesPerSecond))")
+                    LocalSummary(metrics: model.system)
                 }
             }
         }
     }
 
     private var lyricsPage: some View {
-        GlassCard(title: model.lyrics.title, symbol: model.lyrics.playing ? "waveform" : "pause.fill") {
-            VStack(alignment: .leading, spacing: 20) {
-                Text(model.lyrics.artists)
-                    .font(.system(size: 21, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.65))
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-                Text(model.lyrics.currentLine)
-                    .font(.system(size: 50, weight: .bold, design: .rounded))
-                    .lineSpacing(8)
-                    .lineLimit(3)
-                    .minimumScaleFactor(0.55)
-                if !model.lyrics.currentTranslation.isEmpty {
-                    Text(model.lyrics.currentTranslation)
-                        .font(.system(size: 26, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.orange.opacity(0.95))
-                        .lineLimit(2)
+        TimelineView(.periodic(from: .now, by: model.lyrics.lines.contains(where: { !$0.tokens.isEmpty }) ? 0.25 : 1.0)) { timeline in
+            let presentation = model.lyrics.presentation(at: timeline.date)
+            ContentSurface(padding: 24) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 12) {
+                        Image(systemName: model.lyrics.playing ? "waveform" : "pause.fill")
+                            .foregroundStyle(accent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(model.lyrics.title)
+                                .font(.system(size: 21, weight: .semibold))
+                                .lineLimit(1)
+                            Text(model.lyrics.artists)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.52))
+                                .lineLimit(1)
+                        }
+                        Spacer()
+                        Text(time(presentation.position))
+                            .font(.system(size: 15, weight: .medium, design: .monospaced))
+                            .foregroundStyle(.white.opacity(0.52))
+                    }
+
+                    Spacer(minLength: 8)
+                    Text(presentation.previous)
+                        .font(.system(size: 19, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.34))
+                        .lineLimit(1)
+
+                    Spacer(minLength: 14)
+                    karaokeText(presentation)
+                        .font(.system(size: 45, weight: .bold, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(5)
+                        .lineLimit(3)
+                        .minimumScaleFactor(0.62)
+                        .frame(maxWidth: .infinity)
+
+                    if !presentation.translation.isEmpty {
+                        Text(presentation.translation)
+                            .font(.system(size: 23, weight: .semibold))
+                            .foregroundStyle(accent.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                            .lineLimit(2)
+                            .padding(.top, 10)
+                    }
+
+                    Spacer(minLength: 14)
+                    Text(presentation.next)
+                        .font(.system(size: 21, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.50))
+                        .lineLimit(1)
+                    Spacer(minLength: 12)
+                    ProgressView(value: presentation.progress)
+                        .tint(accent)
                 }
-                Spacer(minLength: 0)
-                if !model.lyrics.nextLine.isEmpty {
-                    Text(model.lyrics.nextLine)
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.5))
-                        .lineLimit(2)
-                }
-                ProgressView(value: model.lyrics.progress)
-                    .tint(.orange)
-                    .scaleEffect(y: 1.5)
             }
         }
     }
@@ -174,148 +149,144 @@ struct DashboardView: View {
     private func sourcePage(sourceID: String?) -> some View {
         if let sourceID, let source = model.configuration.sources.first(where: { $0.id == sourceID }) {
             let state = model.sourceStates[sourceID]
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 HStack {
                     Label(source.title, systemImage: source.symbol)
-                        .font(.system(size: 27, weight: .bold, design: .rounded))
+                        .font(.system(size: 25, weight: .bold))
                     Spacer()
-                    sourceStatus(state, source: source)
+                    SourceHealth(state: state, source: source)
                 }
-                .padding(.horizontal, 6)
+                .padding(.horizontal, 5)
 
                 if let fields = state?.snapshot?.fields, !fields.isEmpty {
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
-                        ForEach(fields) { field in
-                            FieldTile(field: field)
-                        }
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 3), spacing: 12) {
+                        ForEach(fields) { field in SourceFieldView(field: field) }
                     }
+                    .frame(maxHeight: .infinity)
                 } else {
-                    GlassCard(title: "等待数据", symbol: "network.slash") {
-                        emptyState(state?.error ?? "正在连接 \(source.url.host ?? source.url.absoluteString)", symbol: "arrow.clockwise")
+                    ContentSurface {
+                        EmptyState(symbol: "network.slash", title: "等待数据", detail: state?.error ?? source.url.host ?? source.url.absoluteString)
                     }
                 }
             }
         } else {
-            GlassCard(title: "配置错误", symbol: "exclamationmark.triangle") {
-                emptyState("页面没有对应的数据源", symbol: "wrench.and.screwdriver")
+            ContentSurface {
+                EmptyState(symbol: "exclamationmark.triangle", title: "配置错误", detail: "页面没有对应的数据源")
             }
         }
     }
 
     private var localSystemPage: some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
-            MetricTile(label: "CPU", value: String(format: "%.0f%%", model.system.cpuPercent), symbol: "cpu", gauge: model.system.cpuPercent)
-            MetricTile(label: "内存", value: String(format: "%.0f%%", model.system.memoryPercent), symbol: "memorychip", gauge: model.system.memoryPercent)
-            MetricTile(label: "系统负载", value: String(format: "%.2f", model.system.loadAverage.0), symbol: "chart.xyaxis.line", detail: String(format: "5 分钟 %.2f · 15 分钟 %.2f", model.system.loadAverage.1, model.system.loadAverage.2))
-            MetricTile(label: "热状态", value: model.system.thermalState, symbol: "thermometer.medium", detail: "无需管理员权限")
-            ForEach(model.system.volumes) { volume in
-                MetricTile(label: volume.label, value: volume.freeBytes.map(bytes) ?? "未挂载", symbol: "externaldrive", gauge: volume.percent, detail: volume.path)
-            }
-            MetricTile(label: "网络", value: "↓ \(rate(model.system.networkDownBytesPerSecond))", symbol: "network", detail: "↑ \(rate(model.system.networkUpBytesPerSecond))")
-            MetricTile(label: "运行时间", value: duration(model.system.uptimeSeconds), symbol: "clock.arrow.circlepath")
-        }
-    }
-
-    private func sourceOverview(_ source: PanelConfiguration.HTTPJSONSource) -> some View {
-        let state = model.sourceStates[source.id]
-        return GlassCard(title: source.title, symbol: source.symbol) {
-            if let fields = state?.snapshot?.fields {
-                VStack(spacing: 11) {
-                    ForEach(Array(fields.prefix(4))) { field in
-                        valueRow(field.label, field.text, positive: field.positive)
+        GeometryReader { geometry in
+            HStack(spacing: 12) {
+                ContentSurface {
+                    HStack(spacing: 28) {
+                        MetricRing(label: "CPU", value: model.system.cpuPercent, color: accent)
+                        MetricRing(label: "内存", value: model.system.memoryPercent, color: .purple)
                     }
-                    Spacer(minLength: 0)
-                    sourceStatus(state, source: source)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-            } else {
-                emptyState(state?.error ?? "正在加载", symbol: "arrow.clockwise")
-            }
-        }
-    }
+                .frame(width: geometry.size.width * 0.43)
 
-    private func sourceStatus(_ state: DataSourceState?, source: PanelConfiguration.HTTPJSONSource) -> some View {
-        let staleByAge = state?.lastSuccess.map { Date().timeIntervalSince($0) > source.staleAfterSeconds } ?? false
-        let warning = state?.stale == true || staleByAge
-        let text: String
-        if warning { text = "数据已过期" }
-        else if state?.error != nil { text = "暂时不可用" }
-        else if let date = state?.lastSuccess { text = "更新于 \(date.formatted(date: .omitted, time: .shortened))" }
-        else { text = "正在加载" }
-        return HStack(spacing: 7) {
-            StatusDot(good: state?.error == nil && !warning)
-            Text(text)
-        }
-        .font(.system(size: 14, weight: .semibold))
-        .foregroundStyle(.white.opacity(0.65))
-    }
-
-    private var footer: some View {
-        HStack {
-            if let warning = model.configurationWarning {
-                Label(warning, systemImage: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-                    .lineLimit(1)
-            } else {
-                Label("本地优先 · 只读 GET · 无管理员权限", systemImage: "lock.shield")
-                    .foregroundStyle(.white.opacity(0.55))
-            }
-            Spacer()
-            HStack(spacing: 8) {
-                ForEach(Array(model.configuration.pages.enumerated()), id: \.element.id) { index, page in
-                    Capsule()
-                        .fill(index == model.selectedPageIndex ? Color.white : Color.white.opacity(0.25))
-                        .frame(width: index == model.selectedPageIndex ? 24 : 8, height: 8)
-                        .accessibilityLabel(page.title)
+                VStack(spacing: 12) {
+                    ContentSurface {
+                        HStack(spacing: 24) {
+                            CompactMetric(label: "系统负载", value: String(format: "%.2f", model.system.loadAverage.0), detail: "5m  \(String(format: "%.2f", model.system.loadAverage.1))")
+                            Divider().overlay(.white.opacity(0.08))
+                            CompactMetric(label: "热状态", value: model.system.thermalState, detail: "无需管理员权限")
+                            Divider().overlay(.white.opacity(0.08))
+                            CompactMetric(label: "运行时间", value: duration(model.system.uptimeSeconds), detail: "macOS")
+                        }
+                    }
+                    ContentSurface {
+                        HStack(spacing: 18) {
+                            ForEach(model.system.volumes.prefix(2)) { volume in
+                                CompactMetric(label: volume.label, value: volume.freeBytes.map(bytes) ?? "未挂载", detail: "可用空间")
+                            }
+                            Spacer(minLength: 0)
+                            CompactMetric(label: "网络下载", value: rate(model.system.networkDownBytesPerSecond), detail: "上传 \(rate(model.system.networkUpBytesPerSecond))")
+                        }
+                    }
                 }
             }
         }
-        .font(.system(size: 13, weight: .medium))
-        .padding(.horizontal, 6)
     }
 
-    private func valueRow(_ label: String, _ value: String, positive: Bool? = nil) -> some View {
-        HStack(spacing: 12) {
-            Text(label).foregroundStyle(.white.opacity(0.55))
-            Spacer()
-            if let positive { StatusDot(good: positive) }
-            Text(value).fontWeight(.bold).monospacedDigit().lineLimit(1)
+    private func sourceSummary(_ source: PanelConfiguration.HTTPJSONSource) -> some View {
+        let state = model.sourceStates[source.id]
+        return ContentSurface {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label(source.title, systemImage: source.symbol)
+                        .font(.system(size: 18, weight: .semibold))
+                    Spacer()
+                    SourceHealth(state: state, source: source, compact: true)
+                }
+                if let fields = state?.snapshot?.fields {
+                    ForEach(Array(fields.prefix(3))) { field in
+                        HStack {
+                            Text(field.label).foregroundStyle(.white.opacity(0.50))
+                            Spacer()
+                            if let positive = field.positive { StatusDot(good: positive) }
+                            Text(field.text).fontWeight(.semibold).monospacedDigit().lineLimit(1)
+                        }
+                        .font(.system(size: 16))
+                    }
+                } else {
+                    EmptyState(symbol: "arrow.clockwise", title: "正在加载", detail: state?.error ?? "")
+                }
+            }
         }
-        .font(.system(size: 17))
     }
 
-    private func gaugeRow(_ label: String, _ value: Double?) -> some View {
-        VStack(spacing: 7) {
-            valueRow(label, value.map { String(format: "%.0f%%", $0) } ?? "—")
-            ProgressView(value: min(100, max(0, value ?? 0)), total: 100)
-                .tint(metricColor(value ?? 0))
+    private var pageIndicator: some View {
+        HStack(spacing: 8) {
+            if model.autoRotateEnabled {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(accent)
+            }
+            ForEach(Array(model.configuration.pages.enumerated()), id: \.element.id) { index, page in
+                Capsule()
+                    .fill(index == model.selectedPageIndex ? Color.white : Color.white.opacity(0.22))
+                    .frame(width: index == model.selectedPageIndex ? 20 : 6, height: 6)
+                    .accessibilityLabel(page.title)
+            }
+        }
+        .padding(.horizontal, 13)
+        .frame(height: 24)
+        .controlGlass(cornerRadius: 12)
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private var pageSymbol: String {
+        switch model.selectedPage.kind {
+        case .overview: "rectangle.grid.2x2"
+        case .lyrics: "quote.bubble"
+        case .httpJSON: "server.rack"
+        case .localSystem: "macmini"
         }
     }
 
-    private func emptyState(_ text: String, symbol: String) -> some View {
-        VStack(spacing: 13) {
-            Image(systemName: symbol).font(.system(size: 38)).foregroundStyle(.cyan)
-            Text(text)
-                .font(.system(size: 18, weight: .semibold))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(.white.opacity(0.65))
+    private func karaokeText(_ presentation: LyricPresentation) -> Text {
+        guard !presentation.tokens.isEmpty else { return Text(presentation.current) }
+        return presentation.tokens.reduce(Text("")) { result, token in
+            let active = presentation.position >= token.startTime
+            return result + Text(token.text).foregroundColor(active ? accent : .white.opacity(0.38))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func metricColor(_ value: Double) -> Color {
-        if value >= 90 { return .red }
-        if value >= 70 { return .orange }
-        return .cyan
     }
 
     private func duration(_ seconds: Double) -> String {
         let minutes = max(0, Int(seconds)) / 60
         let days = minutes / 1_440
         let hours = (minutes % 1_440) / 60
-        let remainder = minutes % 60
         if days > 0 { return "\(days)天 \(hours)小时" }
-        if hours > 0 { return "\(hours)小时 \(remainder)分" }
-        return "\(remainder)分钟"
+        if hours > 0 { return "\(hours)小时" }
+        return "\(minutes)分钟"
+    }
+
+    private func time(_ seconds: Double) -> String {
+        String(format: "%d:%02d", max(0, Int(seconds)) / 60, max(0, Int(seconds)) % 60)
     }
 
     private func bytes(_ value: UInt64) -> String {
@@ -327,101 +298,216 @@ struct DashboardView: View {
     }
 }
 
-private struct GlassCard<Content: View>: View {
-    let title: String
+private struct NowPlayingOverview: View {
+    let snapshot: LyricSnapshot
+    let date: Date
+
+    var body: some View {
+        let presentation = snapshot.presentation(at: date)
+        ContentSurface(padding: 24) {
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(spacing: 9) {
+                    Image(systemName: snapshot.playing ? "waveform" : "music.note")
+                        .foregroundStyle(accent)
+                    Text("正在播放")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.55))
+                    Spacer()
+                    Text(snapshot.playing ? "播放中" : "已暂停")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.42))
+                }
+                Text(snapshot.title)
+                    .font(.system(size: 28, weight: .bold))
+                    .lineLimit(1)
+                    .padding(.top, 16)
+                Text(snapshot.artists)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.48))
+                    .lineLimit(1)
+                    .padding(.top, 4)
+                Spacer(minLength: 12)
+                Text(presentation.current)
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .lineSpacing(4)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.62)
+                if !presentation.translation.isEmpty {
+                    Text(presentation.translation)
+                        .font(.system(size: 19, weight: .semibold))
+                        .foregroundStyle(accent.opacity(0.88))
+                        .lineLimit(1)
+                        .padding(.top, 8)
+                }
+                Spacer(minLength: 12)
+                ProgressView(value: presentation.progress).tint(accent)
+            }
+        }
+    }
+}
+
+private struct LocalSummary: View {
+    let metrics: SystemMetrics
+
+    var body: some View {
+        ContentSurface {
+            HStack(spacing: 22) {
+                MetricRing(label: "CPU", value: metrics.cpuPercent, color: accent, compact: true)
+                MetricRing(label: "内存", value: metrics.memoryPercent, color: .purple, compact: true)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(metrics.thermalState, systemImage: "thermometer.medium")
+                    Text("↓ \(ByteCountFormatter.string(fromByteCount: Int64(max(0, metrics.networkDownBytesPerSecond)), countStyle: .file))/s")
+                    Text("↑ \(ByteCountFormatter.string(fromByteCount: Int64(max(0, metrics.networkUpBytesPerSecond)), countStyle: .file))/s")
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.58))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+private struct SourceHealth: View {
+    let state: DataSourceState?
+    let source: PanelConfiguration.HTTPJSONSource
+    var compact = false
+
+    var body: some View {
+        let stale = state?.stale == true || state?.lastSuccess.map { Date().timeIntervalSince($0) > source.staleAfterSeconds } == true
+        let good = state?.error == nil && !stale && state?.lastSuccess != nil
+        HStack(spacing: 7) {
+            StatusDot(good: good)
+            if !compact {
+                Text(stale ? "数据已过期" : state?.error != nil ? "暂时不可用" : good ? "已连接" : "正在加载")
+            }
+        }
+        .font(.system(size: 14, weight: .semibold))
+        .foregroundStyle(.white.opacity(0.58))
+    }
+}
+
+private struct SourceFieldView: View {
+    let field: ResolvedField
+
+    var body: some View {
+        ContentSurface {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(field.label)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.48))
+                Spacer(minLength: 0)
+                HStack(spacing: 10) {
+                    if let positive = field.positive { StatusDot(good: positive) }
+                    Text(field.text)
+                        .font(.system(size: 31, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .monospacedDigit()
+                }
+                if field.style == .gauge, let value = field.numericValue {
+                    ProgressView(value: min(100, max(0, value)), total: 100).tint(accent)
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(minHeight: 150)
+    }
+}
+
+private struct MetricRing: View {
+    let label: String
+    let value: Double
+    let color: Color
+    var compact = false
+
+    var body: some View {
+        VStack(spacing: compact ? 5 : 10) {
+            ZStack {
+                Circle().stroke(.white.opacity(0.08), lineWidth: compact ? 7 : 10)
+                Circle()
+                    .trim(from: 0, to: min(1, max(0, value / 100)))
+                    .stroke(color, style: StrokeStyle(lineWidth: compact ? 7 : 10, lineCap: .round))
+                    .rotationEffect(.degrees(-90))
+                Text(String(format: "%.0f", value))
+                    .font(.system(size: compact ? 20 : 34, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+            }
+            .frame(width: compact ? 70 : 126, height: compact ? 70 : 126)
+            Text(label)
+                .font(.system(size: compact ? 13 : 16, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.54))
+        }
+    }
+}
+
+private struct CompactMetric: View {
+    let label: String
+    let value: String
+    let detail: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white.opacity(0.46))
+            Text(value).font(.system(size: 25, weight: .bold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.7)
+            Text(detail).font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.36)).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct EmptyState: View {
     let symbol: String
+    let title: String
+    let detail: String
+
+    var body: some View {
+        VStack(spacing: 9) {
+            Image(systemName: symbol).font(.system(size: 28, weight: .medium)).foregroundStyle(accent)
+            Text(title).font(.system(size: 18, weight: .semibold))
+            if !detail.isEmpty {
+                Text(detail).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.42)).lineLimit(2)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+private struct ContentSurface<Content: View>: View {
+    var padding: CGFloat = 18
     @ViewBuilder let content: Content
 
-    init(title: String, symbol: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.symbol = symbol
+    init(padding: CGFloat = 18, @ViewBuilder content: () -> Content) {
+        self.padding = padding
         self.content = content()
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label(title, systemImage: symbol)
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(.white.opacity(0.72))
-                .lineLimit(1)
-            content
-        }
-        .padding(19)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .panelGlass(cornerRadius: 24)
-    }
-}
-
-private struct FieldTile: View {
-    let field: ResolvedField
-
-    var body: some View {
-        GlassCard(title: field.label, symbol: field.style == .status ? "circle.fill" : "waveform.path.ecg") {
-            VStack(alignment: .leading, spacing: 12) {
-                Spacer(minLength: 0)
-                HStack(spacing: 12) {
-                    if let positive = field.positive { StatusDot(good: positive) }
-                    Text(field.text)
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .minimumScaleFactor(0.6)
-                        .lineLimit(2)
-                }
-                if field.style == .gauge, let value = field.numericValue {
-                    ProgressView(value: min(100, max(0, value)), total: 100).tint(.cyan)
-                }
-                Spacer(minLength: 0)
-            }
-        }
-        .frame(minHeight: 112)
-    }
-}
-
-private struct MetricTile: View {
-    let label: String
-    let value: String
-    let symbol: String
-    var gauge: Double?
-    var detail: String?
-
-    var body: some View {
-        GlassCard(title: label, symbol: symbol) {
-            VStack(alignment: .leading, spacing: 12) {
-                Spacer(minLength: 0)
-                Text(value)
-                    .font(.system(size: 33, weight: .bold, design: .rounded))
-                    .minimumScaleFactor(0.65)
-                    .lineLimit(1)
-                    .monospacedDigit()
-                if let gauge {
-                    ProgressView(value: min(100, max(0, gauge)), total: 100).tint(.cyan)
-                }
-                if let detail {
-                    Text(detail).font(.system(size: 14, weight: .medium)).foregroundStyle(.white.opacity(0.48)).lineLimit(1)
-                }
-                Spacer(minLength: 0)
-            }
-        }
-        .frame(minHeight: 112)
+        content
+            .padding(padding)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .fill(Color.white.opacity(0.055))
+                    .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.075), lineWidth: 1))
+            )
     }
 }
 
 private struct StatusDot: View {
     let good: Bool
     var body: some View {
-        Circle().fill(good ? Color.green : Color.orange).frame(width: 11, height: 11)
+        Circle().fill(good ? Color.green : Color.orange).frame(width: 9, height: 9)
     }
 }
 
 private extension View {
     @ViewBuilder
-    func panelGlass(cornerRadius: CGFloat) -> some View {
+    func controlGlass(cornerRadius: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         if #available(macOS 26.0, *) {
-            self.glassEffect(.regular.tint(.white.opacity(0.04)), in: shape)
+            self.glassEffect(.regular, in: shape)
         } else {
-            self
-                .background(.ultraThinMaterial, in: shape)
-                .overlay(shape.stroke(.white.opacity(0.11), lineWidth: 1))
+            self.background(.ultraThinMaterial, in: shape).overlay(shape.stroke(.white.opacity(0.10), lineWidth: 1))
         }
     }
 }

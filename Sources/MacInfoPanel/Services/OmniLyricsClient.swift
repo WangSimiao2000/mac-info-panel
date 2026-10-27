@@ -1,6 +1,37 @@
 import Foundation
 
 struct OmniLyricsClient: Sendable {
+    private struct Response: Decodable {
+        let service: String
+        let protocolVersion: Int
+        let state: PlayerState?
+        let lyrics: [Line]?
+        let loading: Bool
+        let lyricsVersion: String
+    }
+
+    private struct PlayerState: Decodable {
+        let title: String
+        let artists: [String]
+        let position: String
+        let duration: String
+        let playing: Bool
+    }
+
+    private struct Line: Decodable {
+        let timestamp: String
+        let text: String
+        let tokens: [Token]?
+        let translations: [String: String]?
+        let endTime: String?
+    }
+
+    private struct Token: Decodable {
+        let startTime: String
+        let duration: String
+        let text: String
+    }
+
     let url: URL
 
     func fetch() async -> LyricSnapshot {
@@ -9,62 +40,64 @@ struct OmniLyricsClient: Sendable {
             request.cachePolicy = .reloadIgnoringLocalCacheData
             request.timeoutInterval = 2
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard data.count <= 1_048_576 else {
-                return failure("OmniLyrics 响应过大")
-            }
+            guard data.count <= 1_048_576 else { return failure("OmniLyrics 响应超过 1 MiB") }
             guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
                 return failure("OmniLyrics 接口不可用")
             }
-            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                return failure("OmniLyrics 返回格式无效")
+            let payload = try JSONDecoder().decode(Response.self, from: data)
+            guard payload.service == "OmniLyrics", payload.protocolVersion == 1 else {
+                return failure("不兼容的 OmniLyrics 接口")
             }
-            return parse(root)
+            return makeSnapshot(payload)
         } catch {
             return failure("等待 OmniLyrics")
         }
     }
 
-    private func parse(_ root: [String: Any]) -> LyricSnapshot {
-        guard let state = root["state"] as? [String: Any] else {
-            return LyricSnapshot()
+    private func makeSnapshot(_ response: Response) -> LyricSnapshot {
+        guard let state = response.state else {
+            return LyricSnapshot(
+                apiAvailable: true,
+                playerAvailable: false,
+                loading: response.loading,
+                sampledAt: Date(),
+                lyricsVersion: response.lyricsVersion
+            )
         }
 
-        let title = string(state["title"]) ?? "未知歌曲"
-        let artists: String = {
-            if let values = state["artists"] as? [String] { return values.joined(separator: " · ") }
-            return string(state["artist"]) ?? "未知歌手"
-        }()
-        let position = seconds(state["position"]) ?? seconds(state["positionSeconds"]) ?? 0
-        let duration = seconds(state["duration"]) ?? seconds(state["durationSeconds"]) ?? 0
-        let playing = (state["playing"] as? Bool) ?? false
-
-        let rawLyrics: [Any] = {
-            if let lines = root["lyrics"] as? [Any] { return lines }
-            if let lyrics = root["lyrics"] as? [String: Any], let lines = lyrics["lines"] as? [Any] { return lines }
-            return []
-        }()
-
-        let lines = rawLyrics.compactMap { value -> (time: Double, text: String, translation: String)? in
-            guard let item = value as? [String: Any] else { return nil }
-            guard let time = seconds(item["timestamp"]) ?? seconds(item["time"]) ?? seconds(item["startTime"]) else { return nil }
-            guard let text = string(item["text"]), !text.isEmpty else { return nil }
-            let translation = string(item["translation"]) ?? string(item["translatedText"]) ?? ""
-            return (time, text, translation)
-        }.sorted { $0.time < $1.time }
-
-        let index = lines.lastIndex { $0.time <= position }
-        let current = index.map { lines[$0] }
-        let next = index.flatMap { $0 + 1 < lines.count ? lines[$0 + 1] : nil } ?? (index == nil ? lines.first : nil)
+        let lines = (response.lyrics ?? []).enumerated().compactMap { index, line -> LyricLine? in
+            guard let timestamp = timeInterval(line.timestamp) else { return nil }
+            let translation = line.translations?["zh"]
+                ?? line.translations?["zh-CN"]
+                ?? line.translations?["en"]
+                ?? line.translations?.values.first
+                ?? ""
+            let tokens = (line.tokens ?? []).enumerated().compactMap { tokenIndex, token -> LyricToken? in
+                guard let start = timeInterval(token.startTime), let duration = timeInterval(token.duration) else { return nil }
+                return LyricToken(id: tokenIndex, startTime: start, duration: duration, text: token.text)
+            }
+            return LyricLine(
+                id: index,
+                startTime: timestamp,
+                endTime: line.endTime.flatMap(timeInterval),
+                text: line.text,
+                translation: translation,
+                tokens: tokens
+            )
+        }.sorted { $0.startTime < $1.startTime }
 
         return LyricSnapshot(
-            available: true,
-            playing: playing,
-            title: title,
-            artists: artists,
-            currentLine: current?.text ?? (lines.isEmpty ? "暂未匹配到歌词" : "♪"),
-            currentTranslation: current?.translation ?? "",
-            nextLine: next?.text ?? "",
-            progress: duration > 0 ? min(1, max(0, position / duration)) : 0,
+            apiAvailable: true,
+            playerAvailable: true,
+            loading: response.loading,
+            playing: state.playing,
+            title: state.title,
+            artists: state.artists.joined(separator: " · "),
+            positionSeconds: timeInterval(state.position) ?? 0,
+            durationSeconds: timeInterval(state.duration) ?? 0,
+            sampledAt: Date(),
+            lyricsVersion: response.lyricsVersion,
+            lines: lines,
             error: nil
         )
     }
@@ -75,18 +108,17 @@ struct OmniLyricsClient: Sendable {
         return snapshot
     }
 
-    private func string(_ value: Any?) -> String? {
-        if let value = value as? String { return value }
-        if let value = value as? NSNumber { return value.stringValue }
-        return nil
-    }
-
-    private func seconds(_ value: Any?) -> Double? {
-        if let value = value as? NSNumber { return value.doubleValue }
-        guard let text = value as? String else { return nil }
-        if let number = Double(text) { return number }
-        let parts = text.split(separator: ":").compactMap { Double($0) }
-        guard parts.count == 2 || parts.count == 3 else { return nil }
-        return parts.reduce(0) { $0 * 60 + $1 }
+    private func timeInterval(_ value: String) -> Double? {
+        let dayParts = value.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+        let hasDays = dayParts.count == 2 && dayParts[0].allSatisfy(\.isNumber) && dayParts[1].contains(":")
+        let clock = hasDays ? String(dayParts[1]) : value
+        let days = hasDays ? Double(dayParts[0]) ?? 0 : 0
+        let fields = clock.split(separator: ":", omittingEmptySubsequences: false)
+        guard fields.count == 2 || fields.count == 3, let last = fields.last.flatMap({ Double($0) }) else { return nil }
+        var total = last
+        if fields.count >= 2, let minutes = Double(fields[fields.count - 2]) { total += minutes * 60 }
+        if fields.count == 3, let hours = Double(fields[0]) { total += hours * 3_600 }
+        total += days * 86_400
+        return total.isFinite ? total : nil
     }
 }

@@ -9,7 +9,8 @@
 - 状态栏菜单切页，或按配置自动轮播页面。
 - 大字号、两列以内布局，适合手机大小的 1280×720 小屏。
 - macOS 26+ 使用系统 Liquid Glass，macOS 14–15 回退到原生 Material。
-- 从 OmniLyrics 本机 API 显示歌曲、进度、当前/下一行歌词。
+- 从 OmniLyrics 本机 API 显示歌曲、进度、当前/下一行歌词，并按播放时钟实时推进。
+- 安装器同时配置 `media-control`，让网易云音乐等系统 Now Playing 播放器可被识别。
 - 通过配置把任意 HTTPS JSON API 映射成状态、数值和仪表卡片。
 - 原生读取 CPU、内存、负载、热状态、磁盘、网络和运行时间。
 - 不需要完整磁盘访问、辅助功能、屏幕录制或管理员权限。
@@ -179,7 +180,7 @@ value, status, gauge
 http://127.0.0.1:27270/snapshot
 ```
 
-安装器可通过以下官方维护者 Cask 安装 OmniLyrics：
+安装器可通过以下官方维护者 Cask 安装 OmniLyrics，并安装 Homebrew `media-control` 以支持网易云音乐等 macOS Now Playing 播放器：
 
 ```bash
 brew install --cask zzxzzk115/tap/omnilyrics

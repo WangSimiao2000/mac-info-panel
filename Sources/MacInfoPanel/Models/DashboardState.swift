@@ -1,16 +1,75 @@
 import Foundation
 import SwiftUI
 
+struct LyricToken: Sendable, Identifiable {
+    let id: Int
+    let startTime: Double
+    let duration: Double
+    let text: String
+}
+
+struct LyricLine: Sendable, Identifiable {
+    let id: Int
+    let startTime: Double
+    let endTime: Double?
+    let text: String
+    let translation: String
+    let tokens: [LyricToken]
+}
+
+struct LyricPresentation: Sendable {
+    let previous: String
+    let current: String
+    let translation: String
+    let next: String
+    let tokens: [LyricToken]
+    let position: Double
+    let progress: Double
+}
+
 struct LyricSnapshot: Sendable {
-    var available = false
+    var apiAvailable = false
+    var playerAvailable = false
+    var loading = false
     var playing = false
     var title = "等待播放器"
-    var artists = "请启动 OmniLyrics 和受支持的音乐播放器"
-    var currentLine = "暂无歌词"
-    var currentTranslation = ""
-    var nextLine = ""
-    var progress: Double = 0
+    var artists = "打开支持系统“正在播放”的音乐应用"
+    var positionSeconds: Double = 0
+    var durationSeconds: Double = 0
+    var sampledAt = Date()
+    var lyricsVersion = ""
+    var lines: [LyricLine] = []
     var error: String?
+
+    func estimatedPosition(at date: Date) -> Double {
+        let elapsed = playing ? max(0, date.timeIntervalSince(sampledAt)) : 0
+        return min(durationSeconds > 0 ? durationSeconds : .greatestFiniteMagnitude, max(0, positionSeconds + elapsed))
+    }
+
+    func presentation(at date: Date) -> LyricPresentation {
+        let position = estimatedPosition(at: date)
+        let index = lines.lastIndex { $0.startTime <= position }
+        let current = index.map { lines[$0] }
+        let previous = index.flatMap { $0 > 0 ? lines[$0 - 1].text : nil } ?? ""
+        let next = index.flatMap { $0 + 1 < lines.count ? lines[$0 + 1].text : nil }
+            ?? (index == nil ? lines.first?.text : nil)
+            ?? ""
+        let message: String
+        if !apiAvailable { message = "等待 OmniLyrics" }
+        else if !playerAvailable { message = "等待播放器" }
+        else if loading { message = "正在匹配歌词…" }
+        else if lines.isEmpty { message = "暂未匹配到歌词" }
+        else { message = current?.text ?? "♪" }
+        return LyricPresentation(
+            previous: previous,
+            current: message,
+            translation: current?.translation ?? "",
+            next: next,
+            tokens: current?.tokens ?? [],
+            position: position,
+            progress: durationSeconds > 0 ? min(1, max(0, position / durationSeconds)) : 0
+        )
+    }
 }
 
 struct SystemMetrics: Sendable {

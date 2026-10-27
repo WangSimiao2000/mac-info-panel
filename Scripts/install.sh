@@ -54,6 +54,10 @@ if "$WITH_LYRICS"; then
     /usr/sbin/spctl -a --type execute "$OMNI_APP"
     TEAM_ID="$(/usr/bin/codesign -d --verbose=4 "$OMNI_APP" 2>&1 | /usr/bin/sed -n 's/^TeamIdentifier=//p')"
     [[ "$TEAM_ID" == "663634Z9H8" ]] || { print -u2 "Unexpected OmniLyrics signer: $TEAM_ID"; exit 1; }
+    if command -v brew >/dev/null 2>&1 && ! command -v media-control >/dev/null 2>&1; then
+      echo "Installing media-control for additional macOS players..."
+      brew install media-control
+    fi
   fi
 fi
 
