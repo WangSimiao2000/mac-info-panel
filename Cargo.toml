@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "apps/desktop",
+    "apps/plugin-cli",
     "crates/panel-core",
     "crates/panel-config",
     "crates/panel-http",
@@ -26,10 +27,16 @@ repository = "https://github.com/WangSimiao2000/mac-info-panel"
 
 [workspace.dependencies]
 bytes = "1.10"
+cap-fs-ext = "4.0.3"
+cap-std = "4.0.3"
+crc32fast = "1.4"
 extism = { version = "1.41.0", default-features = false, features = ["wasmtime-default-features"] }
+flate2 = { version = "1.1", default-features = false, features = ["rust_backend"] }
 futures-util = "0.3.31"
 fs2 = "0.4.3"
 http = "1.3"
+jsonschema = { version = "0.60.2", default-features = false }
+libc = "0.2"
 panel-core = { path = "crates/panel-core" }
 panel-config = { path = "crates/panel-config" }
 panel-http = { path = "crates/panel-http" }
@@ -47,8 +54,11 @@ reqwest = { version = "0.12.24", default-features = false, features = ["rustls-t
 semver = "1.0"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = { version = "1.0", features = ["raw_value"] }
+sha2 = "0.10"
 slint = "1.18.1"
 slint-build = "1.18.1"
+tempfile = "3.23"
 thiserror = "2.0.21"
 tokio = { version = "1.48.0", features = ["net", "time"] }
+unicode-normalization = "0.1"
 url = "2.5.8"

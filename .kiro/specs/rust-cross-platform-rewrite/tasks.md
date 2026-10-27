@@ -73,14 +73,14 @@
 
 ## 6. 插件包和 CLI
 
-- [ ] 6.1 定义确定性 `.info-panel-plugin` 包格式。
-- [ ] 6.2 实现包结构、路径穿越和大小校验。
-- [ ] 6.3 实现 SHA-256 和签名验证。
-- [ ] 6.4 实现 `plugin-cli new`。
-- [ ] 6.5 实现 `plugin-cli validate`。
-- [ ] 6.6 实现 `plugin-cli test`。
-- [ ] 6.7 实现 `plugin-cli pack`。
-- [ ] 6.8 实现本地开发模式和未签名警告。
+- [x] 6.1 定义确定性 `.info-panel-plugin` 包格式。
+- [x] 6.2 实现包结构、路径穿越和大小校验。
+- [x] 6.3 实现 SHA-256 和签名验证。
+- [x] 6.4 实现 `plugin-cli new`。
+- [x] 6.5 实现 `plugin-cli validate`。
+- [x] 6.6 实现 `plugin-cli test`。
+- [x] 6.7 实现 `plugin-cli pack`。
+- [x] 6.8 实现本地开发模式和未签名警告。
 
 ## 7. Slint UI 和设计系统
 

@@ -1,0 +1,38 @@
+[package]
+name = "info-panel-plugin-cli"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+
+[[bin]]
+name = "plugin-cli"
+path = "src/main.rs"
+
+[features]
+default = ["runtime"]
+runtime = ["dep:panel-plugin-host", "dep:panel-plugin-runtime-extism"]
+[dependencies]
+cap-fs-ext.workspace = true
+cap-std.workspace = true
+crc32fast.workspace = true
+flate2.workspace = true
+jsonschema.workspace = true
+libc.workspace = true
+panel-plugin-api.workspace = true
+panel-plugin-host = { workspace = true, optional = true }
+panel-plugin-runtime-extism = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+unicode-normalization.workspace = true
+
+[dev-dependencies]
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }

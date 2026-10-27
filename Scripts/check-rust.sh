@@ -43,3 +43,6 @@ INFO_PANEL_LUA_RUNNER_WASM="$LUA_RUNNER_WASM" \
   cargo test -p panel-plugin-runtime-extism --test lua_runner -- --ignored --test-threads=1
 INFO_PANEL_LUA_RUNNER_WASM="$LUA_RUNNER_WASM" \
   cargo test -p panel-plugin-host --test real_lua_plugin -- --ignored --test-threads=1
+INFO_PANEL_EXAMPLE_PLUGIN_WASM="$PLUGIN_WASM" \
+  INFO_PANEL_LUA_RUNNER_WASM="$LUA_RUNNER_WASM" \
+  cargo test -p info-panel-plugin-cli --test real_plugins -- --ignored --test-threads=1
