@@ -20,9 +20,9 @@ Lua 插件不直接嵌入宿主原生 Lua VM。宿主加载受控的 `lua-runner
 
 核心服务使用 Tokio。Slint UI 线程不执行阻塞 IO。后台任务通过有界 channel 将不可变快照发送给 UI 协调器。
 
-### 1.4 迁移策略
+### 1.4 重构策略
 
-采用旁路重写：Rust workspace 与 Swift 项目并存。Swift 版本保持可构建，直到 macOS 对齐验收通过。迁移期间不复用 Swift 二进制内部实现，只复用公开行为、配置格式和视觉基准。
+`main` 只保留 Info Panel Rust 架构。最后一个纯 Swift 实现固定保存在 `legacy/swift` 分支，仅用于行为和视觉参考。Rust 版本不读取旧配置、不复用旧安装状态，也不调用 Swift 二进制。
 
 ## 2. 目标目录
 
@@ -57,10 +57,9 @@ Lua 插件不直接嵌入宿主原生 Lua VM。宿主加载受控的 `lua-runner
 │   ├── fixtures/
 │   ├── plugin-compat/
 │   └── visual/
-└── legacy-swift/ (仅在后续迁移整理时考虑，不在骨架阶段移动现有文件)
 ```
 
-第一阶段不移动 `Sources/`、`Package.swift`、`Scripts/` 或现有配置示例。
+Swift 文件不保留在 `main`；需要参考时从 `legacy/swift` 读取。
 
 ## 3. 依赖方向
 
@@ -238,13 +237,13 @@ host.platform()
 
 ## 9. 配置设计
 
-核心配置继续支持 JSONC，并以 `schemaVersion` 迁移。Rust loader 分三步：
+核心配置支持 JSONC，并从 Info Panel 自己的 `schemaVersion: 1` 开始。loader 分三步：
 
 1. 去除 JSONC 注释并解析原始值。
-2. 按 schema version 执行纯函数迁移。
+2. 对未来 schema 版本升级执行纯函数迁移。
 3. 反序列化为强类型并执行跨字段验证。
 
-迁移写入采用临时文件、fsync 和原子替换；替换前保留带时间戳备份。
+后续版本迁移写入采用临时文件、fsync 和原子替换；替换前保留带时间戳备份。
 
 插件配置存放：
 
@@ -254,7 +253,7 @@ Windows: %APPDATA%/Info Panel/plugins/<id>/
 Linux:  $XDG_CONFIG_HOME/info-panel/plugins/<id>/
 ```
 
-读取旧配置时仍兼容 `~/.config/mac-info-panel/config.jsonc`。
+旧 `~/.config/mac-info-panel` 目录不读取、不修改。
 
 ## 10. 平台层
 
@@ -335,11 +334,10 @@ Token 分类：
 
 ## 15. 发布策略
 
-迁移期间发布通道：
+发布通道：
 
-- Swift stable：当前用户可继续使用。
-- Rust preview：使用不同 bundle ID/config root，避免覆盖稳定版。
-- Rust beta：完成 macOS 对齐后提供配置迁移预览。
-- Rust stable：三平台安装器和迁移通过后替代 Swift 版。
+- preview：验证核心模型、插件边界和平台骨架。
+- beta：完成 macOS 功能对齐后提供安装包。
+- stable：三平台安装器、升级和回滚验证通过后发布。
 
 正式 macOS 产物使用 Developer ID 和公证；Windows 使用代码签名；Linux 至少提供 AppImage/Flatpak 中经验证的一种，并记录托盘和 Wayland 依赖。

@@ -1,131 +1,82 @@
-# Mac Info Panel
+# Info Panel
 
-原生 macOS 小屏信息面板，使用 SwiftUI + AppKit 构建，适合把便携屏、Sidecar 或副显示器用作常驻 Dashboard。
+Info Panel 是使用 Rust 构建的跨平台小屏信息面板，目标平台为 macOS、Windows 和 Linux。
 
-## 功能
+当前处于架构预览阶段。UI 使用 Slint，插件通过 Extism/Wasmtime 沙箱运行。插件只返回语义化 `PageModel`，界面由宿主统一渲染，以保持一致的视觉风格。
 
-- 总览、同步歌词、本机状态和可选 HTTP JSON 页面
-- 自动选择副屏并避开菜单栏和 Dock
-- 滚轮、触控板、状态栏菜单和自动轮播切页
-- Spring 页面/歌词动效，支持“减少动态效果”
-- macOS 26 Liquid Glass，旧系统使用原生 Material
-- CPU、内存、磁盘、网络、负载和热状态
-- 通过 `media-control` 读取 macOS Now Playing，内置网易云 LRC 歌词
-- 不依赖 OmniLyrics、.NET、完整磁盘访问、辅助功能或屏幕录制
-
-## 要求
-
-- macOS 14+
-- Apple Command Line Tools
-- Homebrew（启用歌词时用于安装 `media-control`）
-
-## 安装
-
-```bash
-git clone https://github.com/WangSimiao2000/mac-info-panel.git
-cd mac-info-panel
-./Scripts/install.sh
-```
-
-不安装歌词依赖：
-
-```bash
-./Scripts/install.sh --without-lyrics
-```
-
-应用安装到 `~/Applications/Mac Info Panel.app`，并创建登录自启动 LaunchAgent。
-
-> 当前从源码编译并使用本机 ad-hoc 签名；正式发行仍需 Developer ID 签名和 Apple 公证。
-
-## 使用
-
-- 滚轮向下或触控板向左/下滑：下一页
-- 滚轮向上或触控板向右/上滑：上一页
-- 状态栏菜单：指定页面、开关自动轮播、显示/隐藏和退出
-
-面板是 nonactivating panel，切页不会抢走当前应用的焦点。为了接收滚轮，小屏上的鼠标事件不会穿透给后方窗口。
-
-## 配置
-
-带注释的用户配置：
+## 架构
 
 ```text
-~/.config/mac-info-panel/config.jsonc
+apps/desktop                    桌面程序
+crates/panel-core               状态与导航
+crates/panel-model              页面和组件模型
+crates/panel-plugin-api         插件协议
+crates/panel-plugin-host        插件加载与输出验证
+crates/panel-plugin-runtime-extism
+crates/panel-ui                 Slint UI
+plugins/example-status          真实 WASM 示例插件
+themes/default                  Design tokens
 ```
 
-完整说明和默认值见 [`config.example.jsonc`](config.example.jsonc)。若同时存在 `config.jsonc` 与旧版 `config.json`，优先读取 JSONC。
+插件计划支持：
 
-默认只显示总览、歌词和本机状态，不会请求任何自定义状态 API。添加 HTTP JSON 页面可复制：
+- `wasm@1`：编译后的 WebAssembly 插件
+- `lua@1`：在受限 Lua-in-WASM runner 中执行的 Lua 插件
 
-```text
-Examples/http-json-page.jsonc
-```
-
-HTTP JSON 数据源支持：
-
-- RFC 6901 JSON Pointer
-- `string`、`number`、`boolean`、`percent`、`bytes`、`duration`、`date`
-- `value`、`status`、`gauge` 三种样式
-- 自定义标题、SF Symbol、刷新周期、单位和布尔文案；`pages[].title` 是专页顶部名称，`sources[].title` 只用于总览中的数据卡片，两者都可省略并回退到 `id`
-
-数据源只执行 GET；默认只允许 HTTPS，HTTP 仅限本机回环地址；不执行脚本或表达式，不保存 Cookie，响应上限为 1 MiB。
-
-字体默认使用 Apple 系统字体。歌词可选 `system`、`rounded`、`serif`、`monospaced`，并可设置 `0.8–1.35` 的字号倍率。
-
-修改配置后重启：
-
-```bash
-launchctl kickstart -k "gui/$(id -u)/io.github.WangSimiao2000.MacInfoPanel"
-```
+公共插件不支持 C ABI 动态库，也不能提供任意 UI 代码。
 
 ## 开发
 
-```bash
-./Scripts/build-app.sh
-open ".build/Mac Info Panel.app"
-```
+要求：
 
-UI 代码按主题、组件和页面拆分：
+- Rust 1.99.1，通过 `rust-toolchain.toml` 固定
+- `wasm32-unknown-unknown` target
 
-```text
-Sources/MacInfoPanel/UI/
-├── PanelTheme.swift
-├── Components/
-└── Pages/
-```
-
-### Rust 跨平台预览
-
-仓库正在并行迁移到名为 **Info Panel** 的 Slint + Rust + Extism 跨平台版本。Swift 版 `Mac Info Panel` 仍是当前稳定实现，Rust 代码不会覆盖现有应用和配置。
-
-Rust 1.99.1 通过 `rust-toolchain.toml` 固定。安装 Rust 后运行：
+运行完整检查：
 
 ```bash
 ./Scripts/check-rust.sh
+```
+
+构建桌面程序：
+
+```bash
+cargo build --release -p info-panel
+```
+
+运行架构预览：
+
+```bash
 cargo run -p info-panel
 ```
 
-Rust workspace 位于 `apps/` 和 `crates/`，真实 WASM 示例插件位于 `plugins/example-status/`。迁移需求、设计和任务见：
+构建示例插件：
+
+```bash
+cargo build \
+  --manifest-path plugins/example-status/Cargo.toml \
+  --target wasm32-unknown-unknown \
+  --release
+```
+
+## 设计文档
 
 ```text
 .kiro/specs/rust-cross-platform-rewrite/
+├── requirements.md
+├── design.md
+└── tasks.md
 ```
 
-只读 SSH collector 示例位于 [`server/README.md`](server/README.md)。第三方项目和接口声明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+## 旧 Swift 版本
 
-## 卸载
+最后一个纯 Swift 版本保存在 Git 分支：
 
-```bash
-launchctl bootout "gui/$(id -u)/io.github.WangSimiao2000.MacInfoPanel"
-rm "$HOME/Library/LaunchAgents/io.github.WangSimiao2000.MacInfoPanel.plist"
-rm -rf "$HOME/Applications/Mac Info Panel.app"
+```text
+legacy/swift
 ```
 
-用户配置不会自动删除。
-
-## 致谢
-
-歌词播放时钟、曲目匹配边界、缓存和切歌竞态设计参考了 [OmniLyrics v0.4.2](https://github.com/zzxzzk115/OmniLyrics)。Mac Info Panel 不包含或依赖 OmniLyrics；完整版权与许可声明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+新版本不读取或迁移旧版配置。
 
 ## License
 

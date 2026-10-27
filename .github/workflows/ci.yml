@@ -9,20 +9,6 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Build release
-        run: swift build -c release
-      - name: Validate scripts and configuration
-        run: |
-          zsh -n Scripts/install.sh Scripts/install-launch-agent.sh Scripts/build-app.sh Scripts/check-rust.sh
-          sh -n server/mcops-panel-dispatch
-          python3 -m py_compile server/mcops-panel-status.py
-          python3 -m json.tool config.example.json >/dev/null
-          plutil -lint Resources/Info.plist
-
   rust-check:
     name: Rust check (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
