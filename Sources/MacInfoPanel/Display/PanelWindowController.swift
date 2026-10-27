@@ -25,10 +25,16 @@ final class PanelWindowController {
             backing: .buffered,
             defer: false
         )
-        panel.contentView = NSHostingView(rootView: DashboardView(model: model))
+        let hostingView = NSHostingView(rootView: DashboardView(model: model))
+        hostingView.wantsLayer = true
+        hostingView.layer?.cornerRadius = 30
+        hostingView.layer?.cornerCurve = .continuous
+        hostingView.layer?.masksToBounds = true
+        panel.contentView = hostingView
         panel.backgroundColor = .clear
         panel.isOpaque = false
-        panel.hasShadow = false
+        panel.hasShadow = true
+        panel.invalidateShadow()
         panel.level = .normal
         panel.hidesOnDeactivate = false
         panel.ignoresMouseEvents = true

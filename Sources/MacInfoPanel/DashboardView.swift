@@ -1,31 +1,27 @@
 import SwiftUI
 
-private let accent = Color(red: 0.42, green: 0.72, blue: 1.0)
+private let accent = Color.accentColor
+private let windowShape = RoundedRectangle(cornerRadius: 30, style: .continuous)
 
 struct DashboardView: View {
     @ObservedObject var model: DashboardModel
 
     var body: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.035, green: 0.04, blue: 0.055), Color(red: 0.055, green: 0.065, blue: 0.085)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
-
-            VStack(spacing: 12) {
-                topBar
-                pageContent
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .id(model.selectedPage.id)
-                    .transition(.opacity)
-                pageIndicator
-            }
-            .padding(14)
+        VStack(spacing: 12) {
+            topBar
+            pageContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .id(model.selectedPage.id)
+                .transition(.opacity)
+            pageIndicator
         }
-        .foregroundStyle(.white)
-        .environment(\.colorScheme, .dark)
+        .padding(14)
+        .foregroundStyle(.primary)
+        .windowGlass()
+        .clipShape(windowShape)
+        .overlay(windowShape.stroke(Color.primary.opacity(0.12), lineWidth: 1))
+        .shadow(color: .black.opacity(0.28), radius: 20, y: 8)
+        .padding(2)
     }
 
     private var topBar: some View {
@@ -43,7 +39,7 @@ struct DashboardView: View {
             Spacer()
             Text(model.now, format: .dateTime.month().day().weekday(.abbreviated))
                 .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(.white.opacity(0.56))
+                .foregroundStyle(Color.primary.opacity(0.56))
             Text(model.now, format: .dateTime.hour().minute())
                 .font(.system(size: 25, weight: .semibold, design: .rounded))
                 .monospacedDigit()
@@ -99,19 +95,19 @@ struct DashboardView: View {
                                 .lineLimit(1)
                             Text(model.lyrics.artists)
                                 .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.52))
+                                .foregroundStyle(Color.primary.opacity(0.52))
                                 .lineLimit(1)
                         }
                         Spacer()
                         Text(time(presentation.position))
                             .font(.system(size: 15, weight: .medium, design: .monospaced))
-                            .foregroundStyle(.white.opacity(0.52))
+                            .foregroundStyle(Color.primary.opacity(0.52))
                     }
 
                     Spacer(minLength: 8)
                     Text(presentation.previous)
                         .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.34))
+                        .foregroundStyle(Color.primary.opacity(0.34))
                         .lineLimit(1)
 
                     Spacer(minLength: 14)
@@ -135,7 +131,7 @@ struct DashboardView: View {
                     Spacer(minLength: 14)
                     Text(presentation.next)
                         .font(.system(size: 21, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.50))
+                        .foregroundStyle(Color.primary.opacity(0.50))
                         .lineLimit(1)
                     Spacer(minLength: 12)
                     ProgressView(value: presentation.progress)
@@ -192,9 +188,9 @@ struct DashboardView: View {
                     ContentSurface {
                         HStack(spacing: 24) {
                             CompactMetric(label: "系统负载", value: String(format: "%.2f", model.system.loadAverage.0), detail: "5m  \(String(format: "%.2f", model.system.loadAverage.1))")
-                            Divider().overlay(.white.opacity(0.08))
+                            Divider().overlay(Color.primary.opacity(0.08))
                             CompactMetric(label: "热状态", value: model.system.thermalState, detail: "无需管理员权限")
-                            Divider().overlay(.white.opacity(0.08))
+                            Divider().overlay(Color.primary.opacity(0.08))
                             CompactMetric(label: "运行时间", value: duration(model.system.uptimeSeconds), detail: "macOS")
                         }
                     }
@@ -225,7 +221,7 @@ struct DashboardView: View {
                 if let fields = state?.snapshot?.fields {
                     ForEach(Array(fields.prefix(3))) { field in
                         HStack {
-                            Text(field.label).foregroundStyle(.white.opacity(0.50))
+                            Text(field.label).foregroundStyle(Color.primary.opacity(0.50))
                             Spacer()
                             if let positive = field.positive { StatusDot(good: positive) }
                             Text(field.text).fontWeight(.semibold).monospacedDigit().lineLimit(1)
@@ -248,7 +244,7 @@ struct DashboardView: View {
             }
             ForEach(Array(model.configuration.pages.enumerated()), id: \.element.id) { index, page in
                 Capsule()
-                    .fill(index == model.selectedPageIndex ? Color.white : Color.white.opacity(0.22))
+                    .fill(index == model.selectedPageIndex ? Color.primary : Color.primary.opacity(0.22))
                     .frame(width: index == model.selectedPageIndex ? 20 : 6, height: 6)
                     .accessibilityLabel(page.title)
             }
@@ -272,7 +268,7 @@ struct DashboardView: View {
         guard !presentation.tokens.isEmpty else { return Text(presentation.current) }
         return presentation.tokens.reduce(Text("")) { result, token in
             let active = presentation.position >= token.startTime
-            return result + Text(token.text).foregroundColor(active ? accent : .white.opacity(0.38))
+            return result + Text(token.text).foregroundColor(active ? accent : Color.primary.opacity(0.38))
         }
     }
 
@@ -311,11 +307,11 @@ private struct NowPlayingOverview: View {
                         .foregroundStyle(accent)
                     Text("正在播放")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.55))
+                        .foregroundStyle(Color.primary.opacity(0.55))
                     Spacer()
                     Text(snapshot.playing ? "播放中" : "已暂停")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.42))
+                        .foregroundStyle(Color.primary.opacity(0.42))
                 }
                 Text(snapshot.title)
                     .font(.system(size: 28, weight: .bold))
@@ -323,7 +319,7 @@ private struct NowPlayingOverview: View {
                     .padding(.top, 16)
                 Text(snapshot.artists)
                     .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.48))
+                    .foregroundStyle(Color.primary.opacity(0.48))
                     .lineLimit(1)
                     .padding(.top, 4)
                 Spacer(minLength: 12)
@@ -360,7 +356,7 @@ private struct LocalSummary: View {
                     Text("↑ \(ByteCountFormatter.string(fromByteCount: Int64(max(0, metrics.networkUpBytesPerSecond)), countStyle: .file))/s")
                 }
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.58))
+                .foregroundStyle(Color.primary.opacity(0.58))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
@@ -382,7 +378,7 @@ private struct SourceHealth: View {
             }
         }
         .font(.system(size: 14, weight: .semibold))
-        .foregroundStyle(.white.opacity(0.58))
+        .foregroundStyle(Color.primary.opacity(0.58))
     }
 }
 
@@ -394,7 +390,7 @@ private struct SourceFieldView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(field.label)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.48))
+                    .foregroundStyle(Color.primary.opacity(0.48))
                 Spacer(minLength: 0)
                 HStack(spacing: 10) {
                     if let positive = field.positive { StatusDot(good: positive) }
@@ -423,7 +419,7 @@ private struct MetricRing: View {
     var body: some View {
         VStack(spacing: compact ? 5 : 10) {
             ZStack {
-                Circle().stroke(.white.opacity(0.08), lineWidth: compact ? 7 : 10)
+                Circle().stroke(Color.primary.opacity(0.08), lineWidth: compact ? 7 : 10)
                 Circle()
                     .trim(from: 0, to: min(1, max(0, value / 100)))
                     .stroke(color, style: StrokeStyle(lineWidth: compact ? 7 : 10, lineCap: .round))
@@ -435,7 +431,7 @@ private struct MetricRing: View {
             .frame(width: compact ? 70 : 126, height: compact ? 70 : 126)
             Text(label)
                 .font(.system(size: compact ? 13 : 16, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.54))
+                .foregroundStyle(Color.primary.opacity(0.54))
         }
     }
 }
@@ -447,9 +443,9 @@ private struct CompactMetric: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white.opacity(0.46))
+            Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.46))
             Text(value).font(.system(size: 25, weight: .bold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.7)
-            Text(detail).font(.system(size: 12, weight: .medium)).foregroundStyle(.white.opacity(0.36)).lineLimit(1)
+            Text(detail).font(.system(size: 12, weight: .medium)).foregroundStyle(Color.primary.opacity(0.36)).lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -465,7 +461,7 @@ private struct EmptyState: View {
             Image(systemName: symbol).font(.system(size: 28, weight: .medium)).foregroundStyle(accent)
             Text(title).font(.system(size: 18, weight: .semibold))
             if !detail.isEmpty {
-                Text(detail).font(.system(size: 13, weight: .medium)).foregroundStyle(.white.opacity(0.42)).lineLimit(2)
+                Text(detail).font(.system(size: 13, weight: .medium)).foregroundStyle(Color.primary.opacity(0.42)).lineLimit(2)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -487,8 +483,8 @@ private struct ContentSurface<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.white.opacity(0.055))
-                    .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.075), lineWidth: 1))
+                    .fill(Color.primary.opacity(0.055))
+                    .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.primary.opacity(0.075), lineWidth: 1))
             )
     }
 }
@@ -502,12 +498,21 @@ private struct StatusDot: View {
 
 private extension View {
     @ViewBuilder
+    func windowGlass() -> some View {
+        if #available(macOS 26.0, *) {
+            self.glassEffect(.regular.tint(Color(nsColor: .windowBackgroundColor).opacity(0.18)), in: windowShape)
+        } else {
+            self.background(.ultraThickMaterial, in: windowShape)
+        }
+    }
+
+    @ViewBuilder
     func controlGlass(cornerRadius: CGFloat) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         if #available(macOS 26.0, *) {
             self.glassEffect(.regular, in: shape)
         } else {
-            self.background(.ultraThinMaterial, in: shape).overlay(shape.stroke(.white.opacity(0.10), lineWidth: 1))
+            self.background(.ultraThinMaterial, in: shape).overlay(shape.stroke(Color.primary.opacity(0.10), lineWidth: 1))
         }
     }
 }
