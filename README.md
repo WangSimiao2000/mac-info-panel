@@ -106,6 +106,10 @@ rm -rf "$HOME/Applications/Mac Info Panel.app"
 
 用户配置不会自动删除。
 
+## 致谢
+
+歌词播放时钟、曲目匹配边界、缓存和切歌竞态设计参考了 [OmniLyrics v0.4.2](https://github.com/zzxzzk115/OmniLyrics)。Mac Info Panel 不包含或依赖 OmniLyrics；完整版权与许可声明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
+
 ## License
 
 [MIT](LICENSE)
