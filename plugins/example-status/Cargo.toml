@@ -1,0 +1,18 @@
+[package]
+name = "mac-info-panel-plugin-example-status"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+extism-pdk = { version = "1.4.1", default-features = false }
+panel-model = { path = "../../crates/panel-model" }
+panel-plugin-api = { path = "../../crates/panel-plugin-api" }
+
+[workspace]
+resolver = "3"

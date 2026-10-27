@@ -1,0 +1,16 @@
+{
+  "manifestVersion": 1,
+  "id": "io.github.wangsimiao.example-status",
+  "name": "Example Status",
+  "version": "0.1.0",
+  "apiVersion": {
+    "major": 1,
+    "minor": 0
+  },
+  "minimumHostVersion": "0.1.0",
+  "entry": "plugin.wasm",
+  "permissions": {
+    "network": [],
+    "cache": false
+  }
+}

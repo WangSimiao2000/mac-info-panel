@@ -1,0 +1,86 @@
+export component AppWindow inherits Window {
+    title: "Mac Info Panel — Rust Preview";
+    width: 900px;
+    height: 540px;
+    background: #11151e;
+
+    VerticalLayout {
+        padding: 28px;
+        spacing: 18px;
+
+        Text {
+            text: "MAC INFO PANEL";
+            color: #aeb8c8;
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        Text {
+            text: "Rust architecture preview";
+            color: #f4f7fb;
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        HorizontalLayout {
+            spacing: 14px;
+
+            Rectangle {
+                background: #1b2230;
+                border-radius: 18px;
+                horizontal-stretch: 1;
+
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 8px;
+                    Text { text: "CPU"; color: #aeb8c8; font-size: 14px; }
+                    Text { text: "—"; color: #f4f7fb; font-size: 30px; font-weight: 700; }
+                    Text { text: "Waiting for platform adapter"; color: #70a7ff; font-size: 13px; }
+                }
+            }
+
+            Rectangle {
+                background: #1b2230;
+                border-radius: 18px;
+                horizontal-stretch: 1;
+
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 8px;
+                    Text { text: "MEMORY"; color: #aeb8c8; font-size: 14px; }
+                    Text { text: "—"; color: #f4f7fb; font-size: 30px; font-weight: 700; }
+                    Text { text: "Cross-platform model ready"; color: #62d394; font-size: 13px; }
+                }
+            }
+
+            Rectangle {
+                background: #1b2230;
+                border-radius: 18px;
+                horizontal-stretch: 1;
+
+                VerticalLayout {
+                    padding: 18px;
+                    spacing: 8px;
+                    Text { text: "PLUGINS"; color: #aeb8c8; font-size: 14px; }
+                    Text { text: "WASM"; color: #f4f7fb; font-size: 30px; font-weight: 700; }
+                    Text { text: "Sandboxed by default"; color: #f4c66a; font-size: 13px; }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 76px;
+            background: #252e3e;
+            border-radius: 18px;
+
+            HorizontalLayout {
+                padding: 18px;
+                Text {
+                    text: "Slint UI  •  Rust core  •  Extism plugin runtime";
+                    color: #f4f7fb;
+                    font-size: 16px;
+                }
+            }
+        }
+    }
+}

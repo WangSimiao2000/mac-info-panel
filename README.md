@@ -94,6 +94,23 @@ Sources/MacInfoPanel/UI/
 └── Pages/
 ```
 
+### Rust 跨平台预览
+
+仓库正在并行迁移到 Slint + Rust + Extism。Swift 版本仍是当前稳定实现，Rust 代码不会覆盖现有应用和配置。
+
+Rust 1.99.1 通过 `rust-toolchain.toml` 固定。安装 Rust 后运行：
+
+```bash
+./Scripts/check-rust.sh
+cargo run -p mac-info-panel
+```
+
+Rust workspace 位于 `apps/` 和 `crates/`，真实 WASM 示例插件位于 `plugins/example-status/`。迁移需求、设计和任务见：
+
+```text
+.kiro/specs/rust-cross-platform-rewrite/
+```
+
 只读 SSH collector 示例位于 [`server/README.md`](server/README.md)。第三方项目和接口声明见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
 
 ## 卸载
