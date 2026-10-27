@@ -171,7 +171,8 @@ struct VinylRecordView: NSViewRepresentable {
 }
 
 final class VinylRecordNSView: NSView {
-  private let discView = VinylDiscNSView()
+  private let shadowLayer = CALayer()
+  private let discLayer = VinylDiscLayer()
 
   var isSpinning = false {
     didSet {
@@ -184,12 +185,8 @@ final class VinylRecordNSView: NSView {
   override init(frame frameRect: NSRect) {
     super.init(frame: frameRect)
     wantsLayer = true
-    layer?.masksToBounds = false
-    layer?.shadowColor = NSColor.black.cgColor
-    layer?.shadowOpacity = 0.28
-    layer?.shadowRadius = 14
-    layer?.shadowOffset = CGSize(width: 0, height: -6)
-    addSubview(discView)
+    layer?.addSublayer(shadowLayer)
+    layer?.addSublayer(discLayer)
     setAccessibilityElement(true)
     setAccessibilityRole(.image)
   }
@@ -201,19 +198,30 @@ final class VinylRecordNSView: NSView {
   override func layout() {
     super.layout()
     let side = max(0, min(bounds.width, bounds.height) - 24)
-    discView.frame = CGRect(
-      x: bounds.midX - side / 2,
-      y: bounds.midY - side / 2,
-      width: side,
-      height: side
-    )
-    discView.layer?.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-    discView.layer?.position = CGPoint(x: discView.frame.midX, y: discView.frame.midY)
-    layer?.shadowPath = CGPath(ellipseIn: discView.frame, transform: nil)
+    let center = CGPoint(x: bounds.midX, y: bounds.midY)
+    let discRect = CGRect(x: center.x - side / 2, y: center.y - side / 2, width: side, height: side)
+
+    CATransaction.begin()
+    CATransaction.setDisableActions(true)
+
+    shadowLayer.frame = bounds
+    shadowLayer.shadowPath = CGPath(ellipseIn: discRect, transform: nil)
+    shadowLayer.shadowColor = NSColor.black.cgColor
+    shadowLayer.shadowOpacity = 0.28
+    shadowLayer.shadowRadius = 14
+    shadowLayer.shadowOffset = CGSize(width: 0, height: -6)
+
+    discLayer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+    discLayer.bounds = CGRect(x: 0, y: 0, width: side, height: side)
+    discLayer.position = center
+    discLayer.cornerRadius = side / 2
+    discLayer.contentsScale = window?.backingScaleFactor ?? NSScreen.main?.backingScaleFactor ?? 2
+    discLayer.setNeedsDisplay()
+
+    CATransaction.commit()
   }
 
   private func updateAnimation() {
-    guard let discLayer = discView.layer else { return }
     discLayer.removeAnimation(forKey: "vinylRotation")
     guard isSpinning else { return }
     let animation = CABasicAnimation(keyPath: "transform.rotation.z")
@@ -226,26 +234,22 @@ final class VinylRecordNSView: NSView {
   }
 }
 
-private final class VinylDiscNSView: NSView {
-  override init(frame frameRect: NSRect) {
-    super.init(frame: frameRect)
-    wantsLayer = true
-    layerContentsRedrawPolicy = .onSetNeedsDisplay
-    layer?.masksToBounds = true
+private final class VinylDiscLayer: CALayer {
+  override init() {
+    super.init()
+    masksToBounds = true
+    needsDisplayOnBoundsChange = true
+  }
+
+  override init(layer: Any) {
+    super.init(layer: layer)
   }
 
   required init?(coder: NSCoder) {
     nil
   }
 
-  override func layout() {
-    super.layout()
-    layer?.cornerRadius = min(bounds.width, bounds.height) / 2
-    needsDisplay = true
-  }
-
-  override func draw(_ dirtyRect: NSRect) {
-    guard let context = NSGraphicsContext.current?.cgContext else { return }
+  override func draw(in context: CGContext) {
     let side = min(bounds.width, bounds.height)
     let recordRect = CGRect(
       x: bounds.midX - side / 2,
@@ -287,6 +291,18 @@ private final class VinylDiscNSView: NSView {
       )
     }
 
+    context.setStrokeColor(NSColor.white.withAlphaComponent(0.24).cgColor)
+    context.setLineWidth(3)
+    context.setLineCap(.round)
+    context.addArc(
+      center: CGPoint(x: bounds.midX, y: bounds.midY),
+      radius: side * 0.40,
+      startAngle: 0.18,
+      endAngle: 0.72,
+      clockwise: false
+    )
+    context.strokePath()
+
     let labelSide = side * 0.30
     context.setFillColor(NSColor.controlAccentColor.cgColor)
     context.fillEllipse(
@@ -295,6 +311,15 @@ private final class VinylDiscNSView: NSView {
         y: bounds.midY - labelSide / 2,
         width: labelSide,
         height: labelSide
+      )
+    )
+    context.setFillColor(NSColor.white.withAlphaComponent(0.55).cgColor)
+    context.fillEllipse(
+      in: CGRect(
+        x: bounds.midX + labelSide * 0.22,
+        y: bounds.midY + labelSide * 0.08,
+        width: 6,
+        height: 6
       )
     )
     context.setFillColor(NSColor.windowBackgroundColor.cgColor)
