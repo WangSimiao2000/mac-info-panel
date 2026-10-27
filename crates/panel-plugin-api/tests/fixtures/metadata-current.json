@@ -1,0 +1,7 @@
+{
+  "id": "io.github.example.status",
+  "version": "0.1.0",
+  "apiVersion": { "major": 1, "minor": 2 },
+  "runtime": "wasm@1",
+  "pages": [{ "id": "example.status", "title": "Example", "icon": null }]
+}

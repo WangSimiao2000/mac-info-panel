@@ -8,9 +8,22 @@
     "minor": 0
   },
   "minimumHostVersion": "0.1.0",
+  "runtime": "wasm@1",
   "entry": "plugin.wasm",
+  "pages": [
+    {
+      "id": "example.status",
+      "title": "Example Status",
+      "icon": "gauge"
+    }
+  ],
   "permissions": {
     "network": [],
-    "cache": false
-  }
+    "cache": false,
+    "config": false,
+    "locale": false,
+    "platform": true
+  },
+  "source": "https://github.com/WangSimiao2000/mac-info-panel",
+  "license": "MIT"
 }

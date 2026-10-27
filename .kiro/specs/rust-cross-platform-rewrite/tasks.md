@@ -56,17 +56,17 @@
 
 ## 5. 插件 API 与运行时
 
-- [-] 5.1 定义版本化 plugin manifest schema。
-- [-] 5.2 定义 `metadata`、`validate_config` 和 `refresh` ABI。
+- [x] 5.1 定义版本化 plugin manifest schema。
+- [x] 5.2 定义 `metadata`、`validate_config` 和 `refresh` ABI。
 - [x] 5.3 定义 `PluginRuntime` trait。
 - [x] 5.4 实现 Extism runtime adapter。
-- [-] 5.5 实现执行时间、内存和输出大小限制。
+- [x] 5.5 实现执行时间、内存和输出大小限制。
 - [ ] 5.6 实现宿主 HTTP、缓存、日志、locale 和 platform functions。
-- [ ] 5.7 实现插件权限授权和权限升级检测。
-- [ ] 5.8 实现插件隔离状态、退避、抖动和手动重试。
-- [-] 5.9 添加无限循环、OOM、超大输出和越权插件夹具。
-- [ ] 5.10 建立 API 兼容测试并记录弃用策略。
-- [ ] 5.11 定义 `runtime: wasm@1 | lua@1` manifest 字段。
+- [x] 5.7 实现插件权限授权和权限升级检测。
+- [x] 5.8 实现插件隔离状态、退避、抖动和手动重试。
+- [x] 5.9 添加无限循环、OOM、超大输出和越权插件夹具。
+- [x] 5.10 建立 API 兼容测试并记录弃用策略。
+- [x] 5.11 定义 `runtime: wasm@1 | lua@1` manifest 字段。
 - [ ] 5.12 构建受限 `lua-runner.wasm`，禁用 OS、文件、进程和动态模块能力。
 - [ ] 5.13 添加 Lua 指令、内存、输出和宿主调用限额测试。
 - [ ] 5.14 创建 example-lua-status 插件并通过真实 runner smoke test。

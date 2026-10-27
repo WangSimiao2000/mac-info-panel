@@ -4045,6 +4045,7 @@ name = "panel-plugin-api"
 version = "0.1.0"
 dependencies = [
  "panel-model",
+ "semver",
  "serde",
  "serde_json",
  "thiserror 2.0.21",
@@ -4055,11 +4056,14 @@ dependencies = [
 name = "panel-plugin-host"
 version = "0.1.0"
 dependencies = [
+ "panel-http",
  "panel-model",
  "panel-plugin-api",
  "panel-plugin-runtime-extism",
+ "serde",
  "serde_json",
  "thiserror 2.0.21",
+ "url",
 ]
 
 [[package]]

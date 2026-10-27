@@ -3,8 +3,10 @@ use thiserror::Error;
 
 pub const MAX_SECTIONS: usize = 32;
 pub const MAX_WIDGETS: usize = 128;
+pub const MAX_IDENTIFIER_BYTES: usize = 256;
 pub const MAX_TEXT_CHARS: usize = 4_096;
 pub const MAX_CHART_POINTS: usize = 1_024;
+pub const MAX_LIST_ITEMS: usize = 1_024;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
@@ -92,8 +94,14 @@ pub struct PageModel {
 
 impl PageModel {
     pub fn validate(&self) -> Result<(), ModelError> {
+        if self.schema_version != 1 {
+            return Err(ModelError::UnsupportedSchema(self.schema_version));
+        }
         validate_identifier(self.id.as_str())?;
         validate_text("page.title", &self.title)?;
+        if let Some(icon) = &self.icon {
+            validate_identifier(icon)?;
+        }
         if self.sections.len() > MAX_SECTIONS {
             return Err(ModelError::TooManySections(self.sections.len()));
         }
@@ -142,7 +150,11 @@ impl Widget {
         match self {
             Self::Metric(value) => {
                 validate_text("metric.label", &value.label)?;
-                validate_text("metric.value", &value.value)
+                validate_text("metric.value", &value.value)?;
+                if let Some(unit) = &value.unit {
+                    validate_text("metric.unit", unit)?;
+                }
+                Ok(())
             }
             Self::Status(value) => {
                 validate_text("status.label", &value.label)?;
@@ -166,6 +178,9 @@ impl Widget {
                 Ok(())
             }
             Self::List(value) => {
+                if value.items.len() > MAX_LIST_ITEMS {
+                    return Err(ModelError::TooManyListItems(value.items.len()));
+                }
                 for item in &value.items {
                     validate_text("list.item", item)?;
                 }
@@ -238,6 +253,8 @@ pub struct ChartWidget {
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum ModelError {
+    #[error("unsupported page schema version {0}")]
+    UnsupportedSchema(u32),
     #[error("identifier must contain only ASCII letters, digits, '.', '_' or '-'")]
     InvalidIdentifier,
     #[error("{0} cannot be empty")]
@@ -248,6 +265,8 @@ pub enum ModelError {
     TooManySections(usize),
     #[error("page has too many widgets: {0}")]
     TooManyWidgets(usize),
+    #[error("list has too many items: {0}")]
+    TooManyListItems(usize),
     #[error("chart has too many points: {0}")]
     TooManyChartPoints(usize),
     #[error("{0} must be finite")]
@@ -258,6 +277,7 @@ pub enum ModelError {
 
 fn validate_identifier(value: &str) -> Result<(), ModelError> {
     if value.is_empty()
+        || value.len() > MAX_IDENTIFIER_BYTES
         || !value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
@@ -309,6 +329,16 @@ mod tests {
     }
 
     #[test]
+    fn rejects_oversized_page_and_plugin_identifiers() {
+        let oversized = "a".repeat(MAX_IDENTIFIER_BYTES + 1);
+        assert_eq!(
+            PageId::new(oversized.clone()),
+            Err(ModelError::InvalidIdentifier)
+        );
+        assert_eq!(PluginId::new(oversized), Err(ModelError::InvalidIdentifier));
+    }
+
+    #[test]
     fn rejects_unsafe_identifier_deserialized_from_plugin_output() {
         let json = r#"{
             "schemaVersion":1,
@@ -329,6 +359,13 @@ mod tests {
             points: vec![1.0, f64::NAN],
         }));
         assert_eq!(model.validate(), Err(ModelError::NonFinite("chart.point")));
+    }
+
+    #[test]
+    fn rejects_unknown_page_schema_versions() {
+        let mut model = page(Widget::Text(TextWidget { text: "ok".into() }));
+        model.schema_version = 2;
+        assert_eq!(model.validate(), Err(ModelError::UnsupportedSchema(2)));
     }
 
     #[test]

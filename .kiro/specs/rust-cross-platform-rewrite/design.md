@@ -16,6 +16,14 @@
 
 Lua 插件不直接嵌入宿主原生 Lua VM。宿主加载受控的 `lua-runner.wasm`，再将 `plugin.lua`、配置和调用上下文传入 runner。Lua 和原生 WASM 插件共享同一权限检查、超时、内存限制和 `PageModel` 验证流程。公共插件仓库不接受 C ABI 动态库。
 
+运行时标识是 manifest 的必填字段：`wasm@1` 只能对应 `plugin.wasm`，`lua@1` 只能对应 `plugin.lua`。在受限 `lua-runner.wasm` 可用前，宿主必须拒绝 `lua@1`，不得回退到原生 Lua VM。Extism 的内建 HTTP 和 WASI 均关闭；网络能力只接入 `panel-http` 校验后的宿主函数。
+
+插件 ABI 1 包含三个 JSON 调用：`metadata(request) -> response`、`validate_config(request) -> response` 和 `refresh(request) -> response`。宿主在加载时比较 package identity、manifest 和 metadata，在刷新前验证配置，并在反序列化后验证 `PageModel`。每次调用都受同一执行时间、WASM page、输入、输出和错误字节上限约束。适配器在 Extism 内建 `error_set`、`http_request` 和日志函数读取之前以同名 host functions 覆盖入口。`error_set` 只查询 allocation 长度而不读取或记录插件错误正文；直接 Extism HTTP 固定拒绝，日志正文直接丢弃。超限错误、无效指针和未中介网络均 fail closed。宿主捕获 runtime unwind，丢弃 panic payload，并永久标记该实例失效，后续调用必须重载。
+
+协议层限制解码后的 manifest 名称、版本、source、license、页面和网络 origin 的数量与单项字节数。任务 6.2 的包解析器仍必须在 JSON 反序列化前限制原始 `manifest.json` 文件字节数；协议字段限制不能替代原始文件边界。
+
+插件 API 兼容规则为同一 major 内，插件 minor 小于或等于宿主 minor；不同 major 或未来 minor 在 `metadata` 后、其他 ABI 调用前拒绝。响应模型在 minor 版本中只能新增由新宿主以 `serde(default)` 接收的可选字段，使新宿主可以读取旧插件响应。请求模型使用 `deny_unknown_fields`，所以一个 major 内的字段集合固定：新宿主只能开始填充 v1.0 已声明的可选字段，不能向旧插件发送新增字段；新增请求字段必须升级 major。所有方向的未知字段均拒绝。废弃字段至少保留一个宿主 minor 版本，并为 Metadata、ValidateConfig 和 Refresh 的当前版本、旧 minor、未来 minor、不同 major、未知字段以及宿主实际拒绝路径保留 JSON 夹具。删除字段或改变语义必须发布新 major。
+
 ### 1.3 异步运行时
 
 核心服务使用 Tokio。Slint UI 线程不执行阻塞 IO。后台任务通过有界 channel 将不可变快照发送给 UI 协调器。

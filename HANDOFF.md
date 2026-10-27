@@ -49,8 +49,15 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - Design token seed file at `themes/default/tokens.json`.
 - Versioned page model with Metric, Status, Gauge, Text, Progress, List, and Chart widgets.
 - Page-model limits and untrusted identifier/numeric validation.
-- Extism 1.41.0 runtime adapter with timeout.
-- Plugin manifest, request, response, host loading, and output validation.
+- Extism 1.41.0 runtime adapter with checked execution timeout, exact per-call cancellation tokens, real WASM page memory ceiling, pre-copy output ceiling, and a monotonic pre-read `error_set` boundary.
+- Host ABI input uses a stopping limited writer; raw plugin configuration is byte-limited before JSON allocation.
+- Runtime panics are caught without formatting their payload, invalidate the instance, and require reload.
+- `runtime: wasm@1 | lua@1` manifest discriminator with strict entry matching; `lua@1` fails closed until the Lua-in-WASM runner exists.
+- Complete `metadata`, `validate_config`, and `refresh` JSON ABI with package/manifest/metadata identity checks.
+- Host/API/minimum-version compatibility, permission grants, permission-upgrade diffs, and host-mediated `panel-http` network permissions.
+- Per-plugin generation checks, exact per-call cancellation, bounded diagnostics, exponential backoff, real production jitter with injectable deterministic sources, and one manual retry per backoff cycle.
+- Malicious runtime fixtures for infinite loops, memory growth, oversized output/error, monotonic error latching, malformed JSON, invalid UTF-8, cancellation barriers at every boundary, stale generations, permission escape, direct Extism HTTP, runtime panic, and all Metadata/ValidateConfig/Refresh compatibility directions.
+- Plugin manifest, request, response, host loading, and post-deserialization PageModel validation.
 - Structural network-origin validation, including rejection of credentials and fake localhost domains.
 - Secure host HTTP client with exact origin permissions and injected IO.
 - HTTPS-first policy with resolved loopback checks for plain HTTP.
@@ -86,7 +93,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 77 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
+It covered 112 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
 
 Release desktop build also passed previously:
 
@@ -97,10 +104,8 @@ cargo build --release -p info-panel
 ## Important limitations
 
 - The Slint window is static; `PageView` conversion is not bound to components yet.
-- `panel-http` is not yet exposed to plugins or wired into host functions.
-- Extism timeout exists, but memory and output limits are incomplete.
-- Manifest does not yet declare `runtime: wasm@1 | lua@1`.
-- Lua-in-WASM runner does not exist.
+- Host HTTP, cache, logging, locale, and platform functions are not yet exposed to plugins; Extism built-in HTTP and WASI remain disabled.
+- Lua-in-WASM runner does not exist, so `lua@1` manifests are intentionally rejected.
 - No plugin package parser, signature verification, plugin CLI, or repository client exists.
 - Platform traits and adapter skeletons exist, but native OS behavior does not.
 - No real metrics, media, lyrics, tray, display-selection, autostart, or installer implementation exists.

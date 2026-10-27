@@ -149,14 +149,14 @@ impl Error for ViewModelError {}
 
 impl PageView {
     pub fn from_model(model: &PageModel, options: ViewOptions) -> Result<Self, ViewModelError> {
-        model.validate()?;
-        validate_options(options)?;
-
         let icon = model
             .icon
             .as_deref()
             .map(validate_semantic_icon)
             .transpose()?;
+        model.validate()?;
+        validate_options(options)?;
+
         let column_count = adaptive_column_count(options);
         let sections = model
             .sections

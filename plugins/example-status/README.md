@@ -1,6 +1,6 @@
 # Example Status plugin
 
-最小的 Info Panel WebAssembly 插件，用于验证版本化请求、语义页面模型和 Extism 沙箱加载流程。
+最小的 Info Panel WebAssembly 插件，用于验证 `metadata`、`validate_config`、`refresh` 三项版本化 JSON ABI、语义页面模型和 Extism 沙箱加载流程。manifest 使用 `runtime: wasm@1`；插件只获准读取宿主提供的平台标识，未获准读取 locale、配置、网络或缓存。
 
 构建：
 

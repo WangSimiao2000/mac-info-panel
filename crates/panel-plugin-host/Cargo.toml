@@ -7,8 +7,11 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+panel-http.workspace = true
 panel-model.workspace = true
 panel-plugin-api.workspace = true
 panel-plugin-runtime-extism.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+url.workspace = true

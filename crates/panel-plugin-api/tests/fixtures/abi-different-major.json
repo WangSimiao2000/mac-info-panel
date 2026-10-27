@@ -1,0 +1,33 @@
+{
+  "apiVersion": { "major": 2, "minor": 0 },
+  "metadataRequest": {
+    "hostApiVersion": { "major": 1, "minor": 2 },
+    "hostVersion": "0.3.0"
+  },
+  "metadataResponse": {
+    "id": "io.github.example.status",
+    "version": "0.1.0",
+    "apiVersion": { "major": 2, "minor": 0 },
+    "runtime": "wasm@1",
+    "pages": [{ "id": "example.status", "title": "Example", "icon": null }]
+  },
+  "validateConfigRequest": { "config": {} },
+  "validateConfigResponse": { "valid": true, "diagnostics": [] },
+  "refreshRequest": {
+    "generation": 9,
+    "locale": null,
+    "platform": null,
+    "nowUnixMs": 1800000000000,
+    "config": null
+  },
+  "refreshResponse": {
+    "page": {
+      "schemaVersion": 1,
+      "id": "example.status",
+      "title": "Example",
+      "icon": null,
+      "sections": [],
+      "updatedAtUnixMs": null
+    }
+  }
+}
