@@ -7,10 +7,8 @@ struct HTTPJSONPage: View {
   var body: some View {
     if let sourceID, let source = model.configuration.sources.first(where: { $0.id == sourceID }) {
       let state = model.sourceStates[sourceID]
-      VStack(spacing: 12) {
+      VStack(spacing: 10) {
         HStack {
-          Label(source.title, systemImage: source.symbol)
-            .font(.system(size: 25, weight: .semibold))
           Spacer()
           SourceHealth(state: state, source: source)
         }

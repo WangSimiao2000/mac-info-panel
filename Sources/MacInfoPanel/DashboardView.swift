@@ -103,7 +103,14 @@ struct DashboardView: View {
     switch model.selectedPage.kind {
     case .overview: "rectangle.grid.2x2"
     case .lyrics: "quote.bubble"
-    case .httpJSON: "server.rack"
+    case .httpJSON:
+      if let sourceID = model.selectedPage.sourceID,
+        let source = model.configuration.sources.first(where: { $0.id == sourceID })
+      {
+        source.symbol
+      } else {
+        "network"
+      }
     case .localSystem: "macmini"
     }
   }

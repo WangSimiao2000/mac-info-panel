@@ -66,7 +66,7 @@ HTTP JSON 数据源支持：
 - RFC 6901 JSON Pointer
 - `string`、`number`、`boolean`、`percent`、`bytes`、`duration`、`date`
 - `value`、`status`、`gauge` 三种样式
-- 自定义标题、SF Symbol、刷新周期、单位和布尔文案；页面或数据源的 `title` 可省略，省略时使用对应 `id`
+- 自定义标题、SF Symbol、刷新周期、单位和布尔文案；`pages[].title` 是专页顶部名称，`sources[].title` 只用于总览中的数据卡片，两者都可省略并回退到 `id`
 
 数据源只执行 GET；默认只允许 HTTPS，HTTP 仅限本机回环地址；不执行脚本或表达式，不保存 Cookie，响应上限为 1 MiB。
 
