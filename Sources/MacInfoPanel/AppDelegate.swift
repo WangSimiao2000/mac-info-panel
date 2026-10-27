@@ -17,7 +17,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         self.panelController = panelController
 
         installStatusMenu(configuration: loaded.configuration)
-        autoLaunchLyricsIfNeeded(loaded.configuration.lyrics)
         panelController.show()
         model.start()
     }
@@ -67,17 +66,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         statusItem = item
-    }
-
-    private func autoLaunchLyricsIfNeeded(_ lyrics: PanelConfiguration.Lyrics) {
-        guard lyrics.enabled, lyrics.autoLaunch,
-              let applicationURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: lyrics.bundleIdentifier)
-        else { return }
-        let options = NSWorkspace.OpenConfiguration()
-        options.activates = false
-        options.addsToRecentItems = false
-        options.hides = true
-        NSWorkspace.shared.openApplication(at: applicationURL, configuration: options)
     }
 
     @objc private func togglePanel() { panelController?.toggle() }

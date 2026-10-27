@@ -55,7 +55,7 @@ struct LyricSnapshot: Sendable {
             ?? (index == nil ? lines.first?.text : nil)
             ?? ""
         let message: String
-        if !apiAvailable { message = "等待 OmniLyrics" }
+        if !apiAvailable { message = "等待系统播放信息" }
         else if !playerAvailable { message = "等待播放器" }
         else if loading { message = "正在匹配歌词…" }
         else if lines.isEmpty { message = "暂未匹配到歌词" }
@@ -111,15 +111,19 @@ final class DashboardModel: ObservableObject {
 
     let configuration: PanelConfiguration
     let configurationWarning: String?
-    private let lyricsClient: OmniLyricsClient
+    private let mediaControl: MediaControlClient
+    private let lyricsProvider = NeteaseLyricsProvider()
     private let metricsService: SystemMetricsService
     private var tasks: [Task<Void, Never>] = []
+    private var lyricsLookupTask: Task<Void, Never>?
+    private var currentTrackKey: String?
+    private var lyricsGeneration = 0
 
     init(configuration: PanelConfiguration, configurationWarning: String?) {
         self.configuration = configuration
         self.configurationWarning = configurationWarning
         autoRotateEnabled = configuration.behavior.autoRotateSeconds > 0
-        lyricsClient = OmniLyricsClient(url: configuration.lyrics.url)
+        mediaControl = MediaControlClient(configuredPath: configuration.lyrics.mediaControlPath)
         metricsService = SystemMetricsService(volumes: configuration.volumes)
         selectedPageIndex = configuration.pages.firstIndex { $0.id == configuration.behavior.initialPage } ?? 0
         for source in configuration.sources { sourceStates[source.id] = DataSourceState() }
@@ -136,10 +140,11 @@ final class DashboardModel: ObservableObject {
             tasks.append(Task { [weak self] in
                 while !Task.isCancelled {
                     guard let self else { return }
-                    now = Date()
-                    lyrics = await lyricsClient.fetch()
-                    let interval = lyrics.playing ? configuration.lyrics.refreshSeconds : max(3, configuration.lyrics.refreshSeconds)
-                    await sleep(seconds: interval)
+                    for await update in mediaControl.updates() {
+                        if Task.isCancelled { return }
+                        handleMediaUpdate(update)
+                    }
+                    await sleep(seconds: 2)
                 }
             })
         }
@@ -189,7 +194,73 @@ final class DashboardModel: ObservableObject {
         })
     }
 
+    private func handleMediaUpdate(_ update: Result<PlaybackState?, Error>) {
+        now = Date()
+        switch update {
+        case .failure(let error):
+            lyrics.apiAvailable = false
+            lyrics.error = error.localizedDescription
+        case .success(nil):
+            currentTrackKey = nil
+            lyricsGeneration += 1
+            lyricsLookupTask?.cancel()
+            lyrics = LyricSnapshot(apiAvailable: true, sampledAt: Date())
+        case .success(let track?):
+            applyPlayback(track)
+        }
+    }
+
+    private func applyPlayback(_ track: PlaybackState) {
+        let isNewTrack = currentTrackKey != track.trackKey
+        if isNewTrack {
+            currentTrackKey = track.trackKey
+            lyricsGeneration += 1
+            lyricsLookupTask?.cancel()
+            lyrics = LyricSnapshot(
+                apiAvailable: true,
+                playerAvailable: true,
+                loading: true,
+                playing: track.playing,
+                title: track.title,
+                artists: track.artist,
+                positionSeconds: track.position,
+                durationSeconds: track.duration,
+                sampledAt: track.sampledAt,
+                lyricsVersion: track.trackKey,
+                lines: [],
+                error: nil
+            )
+            let generation = lyricsGeneration
+            let key = track.trackKey
+            lyricsLookupTask = Task { [weak self] in
+                guard let self else { return }
+                do {
+                    let lines = try await lyricsProvider.lyrics(for: track)
+                    guard !Task.isCancelled, generation == lyricsGeneration, key == currentTrackKey else { return }
+                    lyrics.lines = lines
+                    lyrics.loading = false
+                    lyrics.error = nil
+                } catch {
+                    guard !Task.isCancelled, generation == lyricsGeneration, key == currentTrackKey else { return }
+                    lyrics.loading = false
+                    lyrics.error = error.localizedDescription
+                }
+            }
+        } else {
+            lyrics.apiAvailable = true
+            lyrics.playerAvailable = true
+            lyrics.playing = track.playing
+            lyrics.title = track.title
+            lyrics.artists = track.artist
+            lyrics.positionSeconds = track.position
+            lyrics.durationSeconds = track.duration
+            lyrics.sampledAt = track.sampledAt
+        }
+    }
+
     func stop() {
+        lyricsLookupTask?.cancel()
+        lyricsLookupTask = nil
         tasks.forEach { $0.cancel() }
         tasks.removeAll()
     }

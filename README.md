@@ -9,8 +9,8 @@
 - 状态栏菜单切页，或按配置自动轮播页面。
 - 大字号、两列以内布局，适合手机大小的 1280×720 小屏。
 - macOS 26+ 使用系统 Liquid Glass，macOS 14–15 回退到原生 Material。
-- 从 OmniLyrics 本机 API 显示歌曲、进度、当前/下一行歌词，并按播放时钟实时推进。
-- 安装器同时配置 `media-control`，让网易云音乐等系统 Now Playing 播放器可被识别。
+- 直接通过 `media-control` 读取 macOS Now Playing，并在应用内搜索、匹配和解析同步歌词。
+- 首个内置歌词 provider 使用网易云 HTTPS Web API，不需要 OmniLyrics 或 .NET 运行时。
 - 通过配置把任意 HTTPS JSON API 映射成状态、数值和仪表卡片。
 - 原生读取 CPU、内存、负载、热状态、磁盘、网络和运行时间。
 - 不需要完整磁盘访问、辅助功能、屏幕录制或管理员权限。
@@ -28,7 +28,7 @@
 
 ## 安装
 
-从源码安装主应用并按需安装 OmniLyrics：
+从源码安装；歌词功能只会安装轻量的 `media-control`：
 
 ```bash
 git clone https://github.com/WangSimiao2000/mac-info-panel.git
@@ -36,7 +36,7 @@ cd mac-info-panel
 ./Scripts/install.sh
 ```
 
-无人值守接受 OmniLyrics 安装：
+无人值守安装：
 
 ```bash
 ./Scripts/install.sh --yes
@@ -57,11 +57,19 @@ cd mac-info-panel
 ~/Library/LaunchAgents/io.github.WangSimiao2000.MacInfoPanel.plist
 ```
 
-## 为什么不把 OmniLyrics 做成子模块
+## 歌词架构
 
-OmniLyrics 是独立应用，面板只依赖其版本化本机 HTTP API。安装脚本会检测签名者并在需要时通过维护者的 Homebrew Cask 安装它，因此用户仍可一条命令完成安装，同时两个项目可以独立升级。源码子模块不会提供可执行程序，反而会要求用户安装 .NET SDK、编译并维护两个生命周期。
+Mac Info Panel 不安装、启动或调用 OmniLyrics，也不需要 .NET 运行时。它直接启动：
 
-OmniLyrics 项目：<https://github.com/zzxzzk115/OmniLyrics>
+```bash
+media-control stream --micros --no-artwork --no-diff
+```
+
+应用使用持续子进程接收 macOS Now Playing 事件，不进行高频进程轮询；播放位置在本机单调推进，切歌后通过 generation 检查阻止迟到的歌词覆盖新歌。
+
+歌词搜索和 LRC 解析在 Swift 进程内完成。当前内置 provider 为 `netease`，使用固定 HTTPS endpoint，并按规范化标题、首位歌手和动态时长容差筛选候选。歌词失败不会影响播放器状态、服务器页面或本机状态。
+
+设计参考和第三方许可证见 [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)。
 
 ## 配置
 
@@ -172,27 +180,25 @@ value, status, gauge
 ]
 ```
 
-## OmniLyrics
+## 内置歌词
 
-默认接口：
-
-```text
-http://127.0.0.1:27270/snapshot
-```
-
-安装器可通过以下官方维护者 Cask 安装 OmniLyrics，并安装 Homebrew `media-control` 以支持网易云音乐等 macOS Now Playing 播放器：
+安装器只安装 Homebrew `media-control`：
 
 ```bash
-brew install --cask zzxzzk115/tap/omnilyrics
+brew install media-control
 ```
 
-面板默认以不激活方式启动 OmniLyrics。可以在配置中关闭：
+默认配置：
 
 ```json
-"autoLaunch": false
+"lyrics": {
+  "enabled": true,
+  "mediaControlPath": null,
+  "provider": "netease"
+}
 ```
 
-OmniLyrics 缺失或播放器未运行时，歌词页显示等待状态，其他页面继续工作。
+`mediaControlPath` 为空时依次查找 `/opt/homebrew/bin/media-control` 和 `/usr/local/bin/media-control`。播放器未运行、歌词未匹配或歌词服务暂时不可用时，歌词页显示明确状态，其他页面继续工作。
 
 ## 构建与开发
 

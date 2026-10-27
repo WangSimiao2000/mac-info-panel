@@ -2,19 +2,18 @@
 set -euo pipefail
 
 ROOT="${0:A:h:h}"
-ASSUME_YES=false
 WITH_LYRICS=true
 
 for arg in "$@"; do
   case "$arg" in
-    --yes|-y) ASSUME_YES=true ;;
+    --yes|-y) ;;
     --without-lyrics) WITH_LYRICS=false ;;
     --help|-h)
       cat <<'EOF'
 Usage: ./Scripts/install.sh [--yes] [--without-lyrics]
 
-  --yes, -y          Install optional OmniLyrics without prompting.
-  --without-lyrics   Install only Mac Info Panel.
+  --yes, -y          Kept for non-interactive compatibility.
+  --without-lyrics   Install without the media-control dependency.
 EOF
       exit 0
       ;;
@@ -27,38 +26,16 @@ if ! command -v swift >/dev/null 2>&1; then
   exit 1
 fi
 
+if "$WITH_LYRICS" && ! command -v media-control >/dev/null 2>&1; then
+  if ! command -v brew >/dev/null 2>&1; then
+    print -u2 "Lyrics require media-control. Install Homebrew or rerun with --without-lyrics."
+    exit 1
+  fi
+  brew install media-control
+fi
+
 if "$WITH_LYRICS"; then
-  OMNI_APP=""
-  for candidate in "/Applications/OmniLyrics.app" "$HOME/Applications/OmniLyrics.app"; do
-    if [[ -d "$candidate" ]]; then OMNI_APP="$candidate"; break; fi
-  done
-
-  if [[ -z "$OMNI_APP" ]]; then
-    if ! command -v brew >/dev/null 2>&1; then
-      print -u2 "OmniLyrics is optional but Homebrew is unavailable. Install Homebrew or rerun with --without-lyrics."
-      exit 1
-    fi
-    if ! "$ASSUME_YES"; then
-      printf 'Install optional OmniLyrics from zzxzzk115/tap? [y/N] '
-      read -r answer
-      [[ "$answer" == [yY] ]] || WITH_LYRICS=false
-    fi
-    if "$WITH_LYRICS"; then
-      brew install --cask zzxzzk115/tap/omnilyrics
-      OMNI_APP="/Applications/OmniLyrics.app"
-    fi
-  fi
-
-  if "$WITH_LYRICS" && [[ -n "$OMNI_APP" ]]; then
-    /usr/bin/codesign --verify --deep --strict "$OMNI_APP"
-    /usr/sbin/spctl -a --type execute "$OMNI_APP"
-    TEAM_ID="$(/usr/bin/codesign -d --verbose=4 "$OMNI_APP" 2>&1 | /usr/bin/sed -n 's/^TeamIdentifier=//p')"
-    [[ "$TEAM_ID" == "663634Z9H8" ]] || { print -u2 "Unexpected OmniLyrics signer: $TEAM_ID"; exit 1; }
-    if command -v brew >/dev/null 2>&1 && ! command -v media-control >/dev/null 2>&1; then
-      echo "Installing media-control for additional macOS players..."
-      brew install media-control
-    fi
-  fi
+  media-control test
 fi
 
 CONFIG_DIR="$HOME/.config/mac-info-panel"

@@ -15,10 +15,8 @@ struct PanelConfiguration: Codable, Sendable {
 
     struct Lyrics: Codable, Sendable {
         var enabled: Bool
-        var url: URL
-        var refreshSeconds: Double
-        var autoLaunch: Bool
-        var bundleIdentifier: String
+        var mediaControlPath: String?
+        var provider: String
     }
 
     struct Volume: Codable, Sendable, Identifiable {
@@ -92,10 +90,8 @@ struct PanelConfiguration: Codable, Sendable {
         behavior: .init(initialPage: "overview", autoRotateSeconds: 20),
         lyrics: .init(
             enabled: true,
-            url: URL(string: "http://127.0.0.1:27270/snapshot")!,
-            refreshSeconds: 1,
-            autoLaunch: true,
-            bundleIdentifier: "io.github.zzxzzk115.OmniLyrics"
+            mediaControlPath: nil,
+            provider: "netease"
         ),
         pages: [
             .init(id: "overview", title: "总览", kind: .overview, sourceID: nil),
@@ -118,7 +114,6 @@ struct PanelConfiguration: Codable, Sendable {
             try configuration.validate()
             configuration.display.padding = max(0, min(40, configuration.display.padding))
             configuration.behavior.autoRotateSeconds = clampedInterval(configuration.behavior.autoRotateSeconds, minimum: 0)
-            configuration.lyrics.refreshSeconds = clampedInterval(configuration.lyrics.refreshSeconds, minimum: 0.5)
             for index in configuration.sources.indices {
                 configuration.sources[index].refreshSeconds = clampedInterval(configuration.sources[index].refreshSeconds, minimum: 5)
                 configuration.sources[index].staleAfterSeconds = max(
@@ -138,10 +133,8 @@ struct PanelConfiguration: Codable, Sendable {
         try unique(pages.map(\.id), name: "page id")
         try unique(sources.map(\.id), name: "source id")
         try unique(volumes.map(\.id), name: "volume id")
-        if lyrics.enabled {
-            guard let host = lyrics.url.host?.lowercased(), ["127.0.0.1", "localhost", "::1"].contains(host),
-                  ["http", "https"].contains(lyrics.url.scheme?.lowercased() ?? "")
-            else { throw ConfigurationError("歌词接口必须是本机回环 HTTP(S) URL") }
+        guard ["netease"].contains(lyrics.provider) else {
+            throw ConfigurationError("不支持歌词 provider：\(lyrics.provider)")
         }
 
         let sourceIDs = Set(sources.map(\.id))

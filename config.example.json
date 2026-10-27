@@ -12,10 +12,8 @@
   },
   "lyrics": {
     "enabled": true,
-    "url": "http://127.0.0.1:27270/snapshot",
-    "refreshSeconds": 1,
-    "autoLaunch": true,
-    "bundleIdentifier": "io.github.zzxzzk115.OmniLyrics"
+    "mediaControlPath": null,
+    "provider": "netease"
   },
   "pages": [
     { "id": "overview", "title": "Overview", "kind": "overview", "sourceID": null },
