@@ -13,6 +13,23 @@ struct PanelConfiguration: Codable, Sendable {
         var autoRotateSeconds: Double
     }
 
+    struct Appearance: Codable, Sendable {
+        enum LyricFontDesign: String, Codable, Sendable {
+            case system
+            case rounded
+            case serif
+            case monospaced
+        }
+
+        var lyricFontDesign: LyricFontDesign
+        var lyricFontScale: Double
+
+        static let appleRecommended = Appearance(
+            lyricFontDesign: .system,
+            lyricFontScale: 1
+        )
+    }
+
     struct Lyrics: Codable, Sendable {
         var enabled: Bool
         var mediaControlPath: String?
@@ -98,6 +115,7 @@ struct PanelConfiguration: Codable, Sendable {
     var schemaVersion: Int
     var display: Display
     var behavior: Behavior
+    var appearance: Appearance?
     var lyrics: Lyrics
     var pages: [Page]
     var sources: [HTTPJSONSource]
@@ -107,6 +125,7 @@ struct PanelConfiguration: Codable, Sendable {
         schemaVersion: 1,
         display: .init(nameContains: nil, vendorID: nil, modelID: nil, padding: 10),
         behavior: .init(initialPage: "overview", autoRotateSeconds: 20),
+        appearance: .appleRecommended,
         lyrics: .init(
             enabled: true,
             mediaControlPath: nil,
@@ -122,17 +141,23 @@ struct PanelConfiguration: Codable, Sendable {
     )
 
     static func load() -> (configuration: PanelConfiguration, warning: String?) {
-        let path = NSString(string: "~/.config/mac-info-panel/config.json").expandingTildeInPath
-        guard FileManager.default.fileExists(atPath: path) else {
+        let directory = NSString(string: "~/.config/mac-info-panel").expandingTildeInPath
+        let candidates = ["config.jsonc", "config.json"].map { (directory as NSString).appendingPathComponent($0) }
+        guard let path = candidates.first(where: FileManager.default.fileExists(atPath:)) else {
             return (fallback, "未找到配置文件，正在使用通用默认配置")
         }
 
         do {
-            let data = try Data(contentsOf: URL(fileURLWithPath: path))
+            let raw = try Data(contentsOf: URL(fileURLWithPath: path))
+            let data = try JSONComments.strip(raw)
             var configuration = try JSONDecoder().decode(PanelConfiguration.self, from: data)
             try configuration.validate()
             configuration.display.padding = max(0, min(40, configuration.display.padding))
             configuration.behavior.autoRotateSeconds = clampedInterval(configuration.behavior.autoRotateSeconds, minimum: 0)
+            if configuration.appearance == nil { configuration.appearance = .appleRecommended }
+            var appearance = configuration.appearance ?? .appleRecommended
+            appearance.lyricFontScale = max(0.8, min(1.35, appearance.lyricFontScale))
+            configuration.appearance = appearance
             for index in configuration.sources.indices {
                 configuration.sources[index].refreshSeconds = clampedInterval(configuration.sources[index].refreshSeconds, minimum: 5)
                 configuration.sources[index].staleAfterSeconds = max(
@@ -188,4 +213,62 @@ private struct ConfigurationError: LocalizedError {
     let message: String
     init(_ message: String) { self.message = message }
     var errorDescription: String? { message }
+}
+
+private enum JSONComments {
+    static func strip(_ data: Data) throws -> Data {
+        let bytes = Array(data)
+        var output = Data()
+        output.reserveCapacity(bytes.count)
+        var index = 0
+        var inString = false
+        var escaped = false
+
+        while index < bytes.count {
+            let byte = bytes[index]
+            if inString {
+                output.append(byte)
+                if escaped { escaped = false }
+                else if byte == 0x5C { escaped = true }
+                else if byte == 0x22 { inString = false }
+                index += 1
+                continue
+            }
+
+            if byte == 0x22 {
+                inString = true
+                output.append(byte)
+                index += 1
+                continue
+            }
+
+            if byte == 0x2F, index + 1 < bytes.count {
+                let next = bytes[index + 1]
+                if next == 0x2F {
+                    index += 2
+                    while index < bytes.count, bytes[index] != 0x0A, bytes[index] != 0x0D { index += 1 }
+                    continue
+                }
+                if next == 0x2A {
+                    index += 2
+                    var closed = false
+                    while index + 1 < bytes.count {
+                        if bytes[index] == 0x0A || bytes[index] == 0x0D { output.append(bytes[index]) }
+                        if bytes[index] == 0x2A, bytes[index + 1] == 0x2F {
+                            index += 2
+                            closed = true
+                            break
+                        }
+                        index += 1
+                    }
+                    guard closed else { throw ConfigurationError("JSONC 块注释没有结束") }
+                    continue
+                }
+            }
+
+            output.append(byte)
+            index += 1
+        }
+        return output
+    }
 }

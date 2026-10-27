@@ -1,0 +1,73 @@
+{
+  // 配置格式版本。升级时不要自行修改。
+  "schemaVersion": 1,
+
+  // 目标副屏。优先按名称匹配；名称为空时可使用 EDID vendor/model ID。
+  "display": {
+    "nameContains": "Portable Display",
+    "vendorID": null,
+    "modelID": null,
+    // 面板与屏幕可见区域之间的留白，单位为 point。
+    "padding": 10
+  },
+
+  "behavior": {
+    // 启动时显示的页面 ID，必须对应 pages 中的一项。
+    "initialPage": "overview",
+    // 自动切页间隔；设为 0 关闭。鼠标位于面板时仍可滚轮切页。
+    "autoRotateSeconds": 20
+  },
+
+  "appearance": {
+    // Apple 推荐使用 system：英文采用 SF Pro，中文自动采用系统中文字体。
+    // 可选：system、rounded、serif、monospaced。
+    "lyricFontDesign": "system",
+    // 只缩放歌词字号，推荐 1.0；允许范围 0.8–1.35。
+    "lyricFontScale": 1.0
+  },
+
+  "lyrics": {
+    // 关闭后不启动 media-control，也不访问歌词服务。
+    "enabled": true,
+    // null 时自动查找 Homebrew 标准路径。
+    "mediaControlPath": null,
+    // 当前内置 provider：netease。
+    "provider": "netease"
+  },
+
+  // 页面顺序就是滚轮和自动轮播顺序。
+  // kind 可选：overview、lyrics、httpJSON、localSystem。
+  "pages": [
+    { "id": "overview", "title": "Overview", "kind": "overview", "sourceID": null },
+    { "id": "lyrics", "title": "Lyrics", "kind": "lyrics", "sourceID": null },
+    { "id": "server", "title": "Server", "kind": "httpJSON", "sourceID": "example-server" },
+    { "id": "local", "title": "This Mac", "kind": "localSystem", "sourceID": null }
+  ],
+
+  // 通用只读 HTTPS JSON 数据源。
+  "sources": [
+    {
+      "id": "example-server",
+      "title": "Example Server",
+      // Apple SF Symbols 名称。
+      "symbol": "server.rack",
+      "url": "https://status.example.com/status.json",
+      "refreshSeconds": 60,
+      "staleAfterSeconds": 1200,
+      "fields": [
+        // pointer 使用 RFC 6901 JSON Pointer。
+        // type：string、number、boolean、percent、bytes、duration、date。
+        // style：value、status、gauge。
+        { "id": "online", "label": "Status", "pointer": "/online", "type": "boolean", "style": "status", "trueText": "Online", "falseText": "Offline", "unit": null },
+        { "id": "users", "label": "Users", "pointer": "/users", "type": "number", "style": "value", "trueText": null, "falseText": null, "unit": null },
+        { "id": "cpu", "label": "CPU", "pointer": "/host/cpuPercent", "type": "percent", "style": "gauge", "trueText": null, "falseText": null, "unit": null },
+        { "id": "uptime", "label": "Uptime", "pointer": "/uptimeSeconds", "type": "duration", "style": "value", "trueText": null, "falseText": null, "unit": null }
+      ]
+    }
+  ],
+
+  // 本机信息页要显示的卷。路径不存在时显示“未挂载”。
+  "volumes": [
+    { "id": "system", "label": "System", "path": "/" }
+  ]
+}

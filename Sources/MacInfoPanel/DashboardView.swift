@@ -5,6 +5,7 @@ private let windowShape = RoundedRectangle(cornerRadius: 30, style: .continuous)
 
 struct DashboardView: View {
     @ObservedObject var model: DashboardModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(spacing: 12) {
@@ -12,7 +13,8 @@ struct DashboardView: View {
             pageContent
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .id(model.selectedPage.id)
-                .transition(.opacity)
+                .transition(.opacity.combined(with: .scale(scale: 0.985)))
+                .animation(reduceMotion ? nil : .smooth(duration: 0.26), value: model.selectedPageIndex)
             pageIndicator
         }
         .padding(14)
@@ -41,7 +43,7 @@ struct DashboardView: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundStyle(Color.primary.opacity(0.56))
             Text(model.now, format: .dateTime.hour().minute())
-                .font(.system(size: 25, weight: .semibold, design: .rounded))
+                .font(.system(size: 25, weight: .semibold))
                 .monospacedDigit()
         }
         .padding(.horizontal, 16)
@@ -63,7 +65,12 @@ struct DashboardView: View {
         GeometryReader { geometry in
             HStack(spacing: 12) {
                 TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
-                    NowPlayingOverview(snapshot: model.lyrics, date: timeline.date)
+                    NowPlayingOverview(
+                        snapshot: model.lyrics,
+                        date: timeline.date,
+                        fontDesign: lyricFontDesign,
+                        fontScale: lyricFontScale
+                    )
                 }
                 .frame(width: geometry.size.width * 0.59)
 
@@ -107,12 +114,12 @@ struct DashboardView: View {
                     Spacer(minLength: 8)
                     Text(presentation.previous)
                         .font(.system(size: 19, weight: .medium))
-                        .foregroundStyle(Color.primary.opacity(0.34))
+                        .foregroundStyle(Color.primary.opacity(0.45))
                         .lineLimit(1)
 
                     Spacer(minLength: 14)
                     karaokeText(presentation)
-                        .font(.system(size: 45, weight: .bold, design: .rounded))
+                        .font(.system(size: 45 * lyricFontScale, weight: .semibold, design: lyricFontDesign))
                         .multilineTextAlignment(.center)
                         .lineSpacing(5)
                         .lineLimit(3)
@@ -121,8 +128,8 @@ struct DashboardView: View {
 
                     if !presentation.translation.isEmpty {
                         Text(presentation.translation)
-                            .font(.system(size: 23, weight: .semibold))
-                            .foregroundStyle(accent.opacity(0.9))
+                            .font(.system(size: 23 * lyricFontScale, weight: .medium, design: lyricFontDesign))
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .padding(.top, 10)
@@ -131,7 +138,7 @@ struct DashboardView: View {
                     Spacer(minLength: 14)
                     Text(presentation.next)
                         .font(.system(size: 21, weight: .medium))
-                        .foregroundStyle(Color.primary.opacity(0.50))
+                        .foregroundStyle(Color.primary.opacity(0.60))
                         .lineLimit(1)
                     Spacer(minLength: 12)
                     ProgressView(value: presentation.progress)
@@ -268,7 +275,20 @@ struct DashboardView: View {
         guard !presentation.tokens.isEmpty else { return Text(presentation.current) }
         return presentation.tokens.reduce(Text("")) { result, token in
             let active = presentation.position >= token.startTime
-            return result + Text(token.text).foregroundColor(active ? accent : Color.primary.opacity(0.38))
+            return result + Text(token.text).foregroundColor(active ? .primary : .secondary.opacity(0.72))
+        }
+    }
+
+    private var lyricFontScale: Double {
+        model.configuration.appearance?.lyricFontScale ?? 1
+    }
+
+    private var lyricFontDesign: Font.Design {
+        switch model.configuration.appearance?.lyricFontDesign ?? .system {
+        case .system: return .default
+        case .rounded: return .rounded
+        case .serif: return .serif
+        case .monospaced: return .monospaced
         }
     }
 
@@ -297,6 +317,8 @@ struct DashboardView: View {
 private struct NowPlayingOverview: View {
     let snapshot: LyricSnapshot
     let date: Date
+    let fontDesign: Font.Design
+    let fontScale: Double
 
     var body: some View {
         let presentation = snapshot.presentation(at: date)
@@ -324,14 +346,14 @@ private struct NowPlayingOverview: View {
                     .padding(.top, 4)
                 Spacer(minLength: 12)
                 Text(presentation.current)
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
+                    .font(.system(size: 34 * fontScale, weight: .semibold, design: fontDesign))
                     .lineSpacing(4)
                     .lineLimit(3)
                     .minimumScaleFactor(0.62)
                 if !presentation.translation.isEmpty {
                     Text(presentation.translation)
                         .font(.system(size: 19, weight: .semibold))
-                        .foregroundStyle(accent.opacity(0.88))
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .padding(.top, 8)
                 }
@@ -395,7 +417,7 @@ private struct SourceFieldView: View {
                 HStack(spacing: 10) {
                     if let positive = field.positive { StatusDot(good: positive) }
                     Text(field.text)
-                        .font(.system(size: 31, weight: .bold, design: .rounded))
+                        .font(.system(size: 31, weight: .semibold))
                         .lineLimit(1)
                         .minimumScaleFactor(0.65)
                         .monospacedDigit()
@@ -425,7 +447,7 @@ private struct MetricRing: View {
                     .stroke(color, style: StrokeStyle(lineWidth: compact ? 7 : 10, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                 Text(String(format: "%.0f", value))
-                    .font(.system(size: compact ? 20 : 34, weight: .bold, design: .rounded))
+                    .font(.system(size: compact ? 20 : 34, weight: .semibold))
                     .monospacedDigit()
             }
             .frame(width: compact ? 70 : 126, height: compact ? 70 : 126)
@@ -444,7 +466,7 @@ private struct CompactMetric: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(label).font(.system(size: 14, weight: .semibold)).foregroundStyle(Color.primary.opacity(0.46))
-            Text(value).font(.system(size: 25, weight: .bold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.7)
+            Text(value).font(.system(size: 25, weight: .semibold)).lineLimit(1).minimumScaleFactor(0.7)
             Text(detail).font(.system(size: 12, weight: .medium)).foregroundStyle(Color.primary.opacity(0.36)).lineLimit(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -483,7 +505,7 @@ private struct ContentSurface<Content: View>: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(Color.primary.opacity(0.055))
+                    .fill(Color(nsColor: .controlBackgroundColor).opacity(0.45))
                     .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Color.primary.opacity(0.075), lineWidth: 1))
             )
     }

@@ -80,13 +80,13 @@ media-control stream --micros --no-artwork --no-diff
 
 ## 配置
 
-首次安装会把 `config.example.json` 复制到：
+首次安装会把带注释的 `config.example.jsonc` 复制到：
 
 ```text
-~/.config/mac-info-panel/config.json
+~/.config/mac-info-panel/config.jsonc
 ```
 
-修改配置后重新启动面板。仓库中的示例不包含个人域名或凭据。
+配置支持 `//` 行注释和 `/* ... */` 块注释；字符串中的 `https://` 不会被误当作注释。若同时存在 `config.jsonc` 和旧版 `config.json`，优先读取 JSONC。修改配置后重新启动面板。仓库中的示例不包含个人域名或凭据。
 
 ### 选择副屏
 
@@ -102,6 +102,21 @@ media-control stream --micros --no-artwork --no-diff
 ```
 
 窗口使用目标屏幕的可见区域，再向内留出 `padding` 点，不会覆盖系统菜单栏。
+
+### 字体与可读性
+
+默认采用 Apple 系统字体：英文使用 SF Pro，中文由 macOS 自动选择系统中文字体。这是最接近系统应用、字形和字重最稳定的选项。
+
+```jsonc
+"appearance": {
+  // 推荐：system。也可选 rounded、serif、monospaced。
+  "lyricFontDesign": "system",
+  // 推荐 1.0；允许 0.8–1.35。
+  "lyricFontScale": 1.0
+}
+```
+
+数字继续使用系统字体的 `monospacedDigit()`，只让数字等宽，不会把整块界面换成代码字体。颜色使用系统 `primary`、`secondary` 和 Accent Color；歌词正文不再固定使用蓝色或圆体。
 
 ### 页面与轮播
 

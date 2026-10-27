@@ -40,9 +40,9 @@ fi
 
 CONFIG_DIR="$HOME/.config/mac-info-panel"
 mkdir -p "$CONFIG_DIR"
-if [[ ! -f "$CONFIG_DIR/config.json" ]]; then
-  /usr/bin/ditto "$ROOT/config.example.json" "$CONFIG_DIR/config.json"
-  echo "Created configuration: $CONFIG_DIR/config.json"
+if [[ ! -f "$CONFIG_DIR/config.jsonc" && ! -f "$CONFIG_DIR/config.json" ]]; then
+  /usr/bin/ditto "$ROOT/config.example.jsonc" "$CONFIG_DIR/config.jsonc"
+  echo "Created commented configuration: $CONFIG_DIR/config.jsonc"
 fi
 
 "$ROOT/Scripts/install-launch-agent.sh"
