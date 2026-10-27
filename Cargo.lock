@@ -1752,6 +1752,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs2"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9564fc758e15025b46aa6643b1b77d047d1a56a1aea6e01002ac0c7026876213"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "futures"
 version = "0.3.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2844,6 +2854,7 @@ dependencies = [
 name = "info-panel"
 version = "0.1.0"
 dependencies = [
+ "panel-config",
  "panel-core",
  "panel-ui",
  "slint",
@@ -3960,8 +3971,12 @@ dependencies = [
 name = "panel-config"
 version = "0.1.0"
 dependencies = [
+ "fs2",
+ "panel-model",
  "serde",
  "serde_json",
+ "serde_path_to_error",
+ "tempfile",
  "thiserror 2.0.21",
 ]
 
@@ -3969,6 +3984,7 @@ dependencies = [
 name = "panel-core"
 version = "0.1.0"
 dependencies = [
+ "panel-config",
  "panel-model",
  "thiserror 2.0.21",
 ]
@@ -5028,6 +5044,17 @@ dependencies = [
  "serde",
  "serde_core",
  "zmij",
+]
+
+[[package]]
+name = "serde_path_to_error"
+version = "0.1.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "10a9ff822e371bb5403e391ecd83e182e0e77ba7f6fe0160b795797109d1b457"
+dependencies = [
+ "itoa",
+ "serde",
+ "serde_core",
 ]
 
 [[package]]

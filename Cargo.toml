@@ -23,6 +23,7 @@ repository = "https://github.com/WangSimiao2000/mac-info-panel"
 bytes = "1.10"
 extism = { version = "1.41.0", default-features = false, features = ["wasmtime-default-features"] }
 futures-util = "0.3.31"
+fs2 = "0.4.3"
 http = "1.3"
 panel-core = { path = "crates/panel-core" }
 panel-config = { path = "crates/panel-config" }

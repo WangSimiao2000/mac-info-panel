@@ -60,6 +60,25 @@ pub enum BuiltInPage {
     Lyrics,
 }
 
+impl BuiltInPage {
+    pub const fn id(self) -> &'static str {
+        match self {
+            Self::Overview => "overview",
+            Self::LocalSystem => "local-system",
+            Self::Lyrics => "lyrics",
+        }
+    }
+
+    pub fn from_id(value: &str) -> Option<Self> {
+        match value {
+            "overview" => Some(Self::Overview),
+            "local-system" => Some(Self::LocalSystem),
+            "lyrics" => Some(Self::Lyrics),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageModel {

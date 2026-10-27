@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
-use panel_model::{PageDescriptor, PageId, PageModel, PluginId};
+use panel_config::{AppConfig, ConfigError, PageKind};
+use panel_model::{BuiltInPage, PageDescriptor, PageId, PageModel, PageSource, PluginId};
 use thiserror::Error;
 
 const MAX_DIAGNOSTICS: usize = 100;
@@ -17,6 +18,59 @@ pub struct AppState {
 }
 
 impl AppState {
+    pub fn from_config(config: &AppConfig, now_ms: u64) -> Result<Self, ConfigStateError> {
+        config.validate()?;
+        let pages = config
+            .pages
+            .iter()
+            .enumerate()
+            .map(|(index, page)| {
+                let id = PageId::new(page.id.clone()).map_err(|error| {
+                    ConfigStateError::InvalidField {
+                        field: format!("pages[{index}].id"),
+                        reason: error.to_string(),
+                    }
+                })?;
+                let source = match page.kind {
+                    PageKind::BuiltIn => PageSource::BuiltIn {
+                        page: BuiltInPage::from_id(id.as_str()).ok_or_else(|| {
+                            ConfigStateError::InvalidField {
+                                field: format!("pages[{index}].id"),
+                                reason: "is not a recognized built-in page identifier".into(),
+                            }
+                        })?,
+                    },
+                    PageKind::Plugin => PageSource::Plugin {
+                        plugin_id: PluginId::new(page.id.clone()).map_err(|error| {
+                            ConfigStateError::InvalidField {
+                                field: format!("pages[{index}].id"),
+                                reason: error.to_string(),
+                            }
+                        })?,
+                    },
+                };
+                Ok(PageDescriptor {
+                    id,
+                    title: page.title.clone(),
+                    source,
+                })
+            })
+            .collect::<Result<Vec<_>, ConfigStateError>>()?;
+        let initial_page = PageId::new(config.behavior.initial_page.clone()).map_err(|error| {
+            ConfigStateError::InvalidField {
+                field: "behavior.initialPage".into(),
+                reason: error.to_string(),
+            }
+        })?;
+        Self::new(
+            pages,
+            initial_page,
+            config.behavior.auto_rotate_seconds,
+            now_ms,
+        )
+        .map_err(ConfigStateError::Core)
+    }
+
     pub fn new(
         pages: Vec<PageDescriptor>,
         initial_page: PageId,
@@ -218,6 +272,16 @@ pub enum PluginStatus {
     Failed(String),
 }
 
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum ConfigStateError {
+    #[error(transparent)]
+    Config(#[from] ConfigError),
+    #[error("invalid field {field}: {reason}")]
+    InvalidField { field: String, reason: String },
+    #[error(transparent)]
+    Core(CoreError),
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Diagnostic {
     pub code: &'static str,
@@ -361,6 +425,29 @@ mod tests {
             PluginStatus::Failed(_)
         ));
         assert_eq!(value.diagnostics[0].code, "plugin.invalid-page");
+    }
+
+    #[test]
+    fn initializes_state_from_validated_configuration() {
+        let config = AppConfig::from_jsonc(
+            r#"{
+                "schemaVersion": 1,
+                "behavior": {"initialPage":"local-system","autoRotateSeconds":15},
+                "pages": [
+                    {"id":"overview","title":"Overview","kind":"builtIn"},
+                    {"id":"local-system","title":"Local","kind":"builtIn"}
+                ]
+            }"#,
+        )
+        .unwrap();
+        let state = AppState::from_config(&config, 1_000).unwrap();
+        assert_eq!(state.selected_page.as_str(), "local-system");
+        assert_eq!(
+            state.pages[1].source,
+            PageSource::BuiltIn {
+                page: BuiltInPage::LocalSystem
+            }
+        );
     }
 
     #[test]
