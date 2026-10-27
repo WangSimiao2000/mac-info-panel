@@ -23,12 +23,12 @@
 
 ## 2. 共享模型和核心状态
 
-- [-] 2.1 实现 `PageId`、`PluginId` 和版本类型。
+- [x] 2.1 实现 `PageId`、`PluginId` 和版本类型。
 - [x] 2.2 实现 `PageModel`、Section 和首批 Widget 类型。
 - [x] 2.3 实现页面模型边界验证。
-- [ ] 2.4 实现 `AppState`、`AppEvent` 和 reducer。
-- [-] 2.5 实现页面导航、自动轮播和隐藏状态调度策略。
-- [ ] 2.6 使用 fake clock 测试取消、generation 和轮播。
+- [x] 2.4 实现 `AppState`、`AppEvent` 和 reducer。
+- [x] 2.5 实现页面导航、自动轮播和隐藏状态调度策略。
+- [-] 2.6 使用 fake clock 测试取消、generation 和轮播。
 
 ## 3. 配置与版本升级
 

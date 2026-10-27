@@ -6,7 +6,7 @@ pub const MAX_WIDGETS: usize = 128;
 pub const MAX_TEXT_CHARS: usize = 4_096;
 pub const MAX_CHART_POINTS: usize = 1_024;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[serde(transparent)]
 pub struct PageId(String);
 
@@ -22,6 +22,44 @@ impl PageId {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct PluginId(String);
+
+impl PluginId {
+    pub fn new(value: impl Into<String>) -> Result<Self, ModelError> {
+        let value = value.into();
+        validate_identifier(&value)?;
+        Ok(Self(value))
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PageDescriptor {
+    pub id: PageId,
+    pub title: String,
+    pub source: PageSource,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum PageSource {
+    BuiltIn { page: BuiltInPage },
+    Plugin { plugin_id: PluginId },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum BuiltInPage {
+    Overview,
+    LocalSystem,
+    Lyrics,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PageModel {
@@ -35,6 +73,7 @@ pub struct PageModel {
 
 impl PageModel {
     pub fn validate(&self) -> Result<(), ModelError> {
+        validate_identifier(self.id.as_str())?;
         validate_text("page.title", &self.title)?;
         if self.sections.len() > MAX_SECTIONS {
             return Err(ModelError::TooManySections(self.sections.len()));
@@ -248,6 +287,20 @@ mod tests {
     #[test]
     fn rejects_unsafe_identifiers() {
         assert_eq!(PageId::new("../plugin"), Err(ModelError::InvalidIdentifier));
+    }
+
+    #[test]
+    fn rejects_unsafe_identifier_deserialized_from_plugin_output() {
+        let json = r#"{
+            "schemaVersion":1,
+            "id":"../plugin",
+            "title":"Unsafe",
+            "icon":null,
+            "sections":[],
+            "updatedAtUnixMs":null
+        }"#;
+        let model: PageModel = serde_json::from_str(json).unwrap();
+        assert_eq!(model.validate(), Err(ModelError::InvalidIdentifier));
     }
 
     #[test]
