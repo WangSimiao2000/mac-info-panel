@@ -1,0 +1,26 @@
+{
+  // 把这一项加入 config.jsonc 的 pages 数组。
+  "page": {
+    "id": "server",
+    "title": "Server",
+    "kind": "httpJSON",
+    "sourceID": "home-server"
+  },
+
+  // 把这一项加入 config.jsonc 的 sources 数组。
+  "source": {
+    "id": "home-server",
+    "title": "Home Server",
+    "symbol": "server.rack",
+    "url": "https://status.example.com/status.json",
+    "refreshSeconds": 60,
+    "staleAfterSeconds": 1200,
+    "fields": [
+      // pointer 是 RFC 6901 JSON Pointer，可读取嵌套对象和数组。
+      { "id": "online", "label": "Status", "pointer": "/online", "type": "boolean", "style": "status", "trueText": "Online", "falseText": "Offline", "unit": null },
+      { "id": "users", "label": "Users", "pointer": "/users/online", "type": "number", "style": "value", "trueText": null, "falseText": null, "unit": null },
+      { "id": "cpu", "label": "CPU", "pointer": "/host/cpuPercent", "type": "percent", "style": "gauge", "trueText": null, "falseText": null, "unit": null },
+      { "id": "uptime", "label": "Uptime", "pointer": "/uptimeSeconds", "type": "duration", "style": "value", "trueText": null, "falseText": null, "unit": null }
+    ]
+  }
+}

@@ -35,36 +35,18 @@
     "provider": "netease"
   },
 
-  // 页面顺序就是滚轮和自动轮播顺序。
+  // 新安装默认只有总览、歌词和本机状态。
+  // 只有用户主动添加 httpJSON 页面和对应 source 时才访问外部 JSON。
   // kind 可选：overview、lyrics、httpJSON、localSystem。
   "pages": [
     { "id": "overview", "title": "Overview", "kind": "overview", "sourceID": null },
     { "id": "lyrics", "title": "Lyrics", "kind": "lyrics", "sourceID": null },
-    { "id": "server", "title": "Server", "kind": "httpJSON", "sourceID": "example-server" },
     { "id": "local", "title": "This Mac", "kind": "localSystem", "sourceID": null }
   ],
 
-  // 通用只读 HTTPS JSON 数据源。
-  "sources": [
-    {
-      "id": "example-server",
-      "title": "Example Server",
-      // Apple SF Symbols 名称。
-      "symbol": "server.rack",
-      "url": "https://status.example.com/status.json",
-      "refreshSeconds": 60,
-      "staleAfterSeconds": 1200,
-      "fields": [
-        // pointer 使用 RFC 6901 JSON Pointer。
-        // type：string、number、boolean、percent、bytes、duration、date。
-        // style：value、status、gauge。
-        { "id": "online", "label": "Status", "pointer": "/online", "type": "boolean", "style": "status", "trueText": "Online", "falseText": "Offline", "unit": null },
-        { "id": "users", "label": "Users", "pointer": "/users", "type": "number", "style": "value", "trueText": null, "falseText": null, "unit": null },
-        { "id": "cpu", "label": "CPU", "pointer": "/host/cpuPercent", "type": "percent", "style": "gauge", "trueText": null, "falseText": null, "unit": null },
-        { "id": "uptime", "label": "Uptime", "pointer": "/uptimeSeconds", "type": "duration", "style": "value", "trueText": null, "falseText": null, "unit": null }
-      ]
-    }
-  ],
+  // 通用只读 HTTPS JSON 数据源；默认留空，不会发起任何状态 API 请求。
+  // 完整示例见 Examples/http-json-page.jsonc 和 README。
+  "sources": [],
 
   // 本机信息页要显示的卷。路径不存在时显示“未挂载”。
   "volumes": [

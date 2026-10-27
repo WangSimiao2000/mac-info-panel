@@ -171,6 +171,8 @@ struct VinylRecordView: NSViewRepresentable {
 }
 
 final class VinylRecordNSView: NSView {
+  private let discView = VinylDiscNSView()
+
   var isSpinning = false {
     didSet {
       guard oldValue != isSpinning else { return }
@@ -182,11 +184,12 @@ final class VinylRecordNSView: NSView {
   override init(frame frameRect: NSRect) {
     super.init(frame: frameRect)
     wantsLayer = true
-    layerContentsRedrawPolicy = .onSetNeedsDisplay
+    layer?.masksToBounds = false
     layer?.shadowColor = NSColor.black.cgColor
     layer?.shadowOpacity = 0.28
     layer?.shadowRadius = 14
     layer?.shadowOffset = CGSize(width: 0, height: -6)
+    addSubview(discView)
     setAccessibilityElement(true)
     setAccessibilityRole(.image)
   }
@@ -197,14 +200,53 @@ final class VinylRecordNSView: NSView {
 
   override func layout() {
     super.layout()
+    let side = max(0, min(bounds.width, bounds.height) - 24)
+    discView.frame = CGRect(
+      x: bounds.midX - side / 2,
+      y: bounds.midY - side / 2,
+      width: side,
+      height: side
+    )
+    discView.layer?.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+    discView.layer?.position = CGPoint(x: discView.frame.midX, y: discView.frame.midY)
+    layer?.shadowPath = CGPath(ellipseIn: discView.frame, transform: nil)
+  }
+
+  private func updateAnimation() {
+    guard let discLayer = discView.layer else { return }
+    discLayer.removeAnimation(forKey: "vinylRotation")
+    guard isSpinning else { return }
+    let animation = CABasicAnimation(keyPath: "transform.rotation.z")
+    animation.fromValue = 0
+    animation.toValue = Double.pi * 2
+    animation.duration = 12
+    animation.repeatCount = .infinity
+    animation.timingFunction = CAMediaTimingFunction(name: .linear)
+    discLayer.add(animation, forKey: "vinylRotation")
+  }
+}
+
+private final class VinylDiscNSView: NSView {
+  override init(frame frameRect: NSRect) {
+    super.init(frame: frameRect)
+    wantsLayer = true
+    layerContentsRedrawPolicy = .onSetNeedsDisplay
+    layer?.masksToBounds = true
+  }
+
+  required init?(coder: NSCoder) {
+    nil
+  }
+
+  override func layout() {
+    super.layout()
     layer?.cornerRadius = min(bounds.width, bounds.height) / 2
-    layer?.shadowPath = CGPath(ellipseIn: bounds.insetBy(dx: 14, dy: 14), transform: nil)
     needsDisplay = true
   }
 
   override func draw(_ dirtyRect: NSRect) {
     guard let context = NSGraphicsContext.current?.cgContext else { return }
-    let side = min(bounds.width, bounds.height) - 24
+    let side = min(bounds.width, bounds.height)
     let recordRect = CGRect(
       x: bounds.midX - side / 2,
       y: bounds.midY - side / 2,
@@ -237,8 +279,11 @@ final class VinylRecordNSView: NSView {
       let diameter = side * scale
       context.strokeEllipse(
         in: CGRect(
-          x: bounds.midX - diameter / 2, y: bounds.midY - diameter / 2, width: diameter,
-          height: diameter)
+          x: bounds.midX - diameter / 2,
+          y: bounds.midY - diameter / 2,
+          width: diameter,
+          height: diameter
+        )
       )
     }
 
@@ -246,24 +291,14 @@ final class VinylRecordNSView: NSView {
     context.setFillColor(NSColor.controlAccentColor.cgColor)
     context.fillEllipse(
       in: CGRect(
-        x: bounds.midX - labelSide / 2, y: bounds.midY - labelSide / 2, width: labelSide,
-        height: labelSide)
+        x: bounds.midX - labelSide / 2,
+        y: bounds.midY - labelSide / 2,
+        width: labelSide,
+        height: labelSide
+      )
     )
     context.setFillColor(NSColor.windowBackgroundColor.cgColor)
     context.fillEllipse(in: CGRect(x: bounds.midX - 5, y: bounds.midY - 5, width: 10, height: 10))
-  }
-
-  private func updateAnimation() {
-    guard let layer else { return }
-    layer.removeAnimation(forKey: "vinylRotation")
-    guard isSpinning else { return }
-    let animation = CABasicAnimation(keyPath: "transform.rotation.z")
-    animation.fromValue = 0
-    animation.toValue = Double.pi * 2
-    animation.duration = 12
-    animation.repeatCount = .infinity
-    animation.timingFunction = CAMediaTimingFunction(name: .linear)
-    layer.add(animation, forKey: "vinylRotation")
   }
 }
 

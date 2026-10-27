@@ -5,29 +5,31 @@ struct OverviewPage: View {
 
   var body: some View {
     GeometryReader { geometry in
-      HStack(spacing: 12) {
-        TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
-          NowPlayingOverview(
-            snapshot: model.lyrics,
-            date: timeline.date,
-            fontDesign: PanelTheme.lyricFontDesign(model.configuration.appearance),
-            fontScale: model.configuration.appearance?.lyricFontScale ?? 1
-          )
-        }
-        .frame(width: geometry.size.width * 0.59)
-
-        VStack(spacing: 12) {
-          if let source = model.configuration.sources.first {
+      if let source = model.configuration.sources.first {
+        HStack(spacing: 12) {
+          nowPlaying.frame(width: geometry.size.width * 0.59)
+          VStack(spacing: 12) {
             SourceSummary(source: source, state: model.sourceStates[source.id])
-          } else {
-            ContentSurface {
-              EmptyState(
-                symbol: "network", title: "没有数据源", detail: "在 config.jsonc 中添加 HTTPS JSON 接口")
-            }
+            LocalSummary(metrics: model.system)
           }
+        }
+      } else {
+        HStack(spacing: 12) {
+          nowPlaying.frame(width: geometry.size.width * 0.68)
           LocalSummary(metrics: model.system)
         }
       }
+    }
+  }
+
+  private var nowPlaying: some View {
+    TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
+      NowPlayingOverview(
+        snapshot: model.lyrics,
+        date: timeline.date,
+        fontDesign: PanelTheme.lyricFontDesign(model.configuration.appearance),
+        fontScale: model.configuration.appearance?.lyricFontScale ?? 1
+      )
     }
   }
 }

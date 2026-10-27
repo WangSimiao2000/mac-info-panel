@@ -150,6 +150,8 @@ media-control stream --micros --no-artwork --no-diff
 
 ### 通用 HTTP JSON 数据源
 
+新安装默认不会创建 `httpJSON` 页面，`sources` 为空，也不会访问任何示例服务器。只有用户同时在 `pages` 中添加页面、在 `sources` 中添加同 ID 数据源后才会出现。
+
 只支持 GET。默认只允许 HTTPS；HTTP 仅允许 `127.0.0.1`、`localhost` 和 `::1`。响应最大 1 MiB，使用无 Cookie 的临时会话，不执行 HTML、JavaScript、shell 或配置表达式。
 
 示例响应：
@@ -210,7 +212,13 @@ string, number, boolean, percent, bytes, duration, date
 value, status, gauge
 ```
 
-一个数据源失败不会影响其他页面；面板保留最后一次成功结果并标记错误或过期。
+一个数据源失败不会影响其他页面；面板保留最后一次成功结果并标记错误或过期。用户可以自定义 URL、刷新周期、页面标题、SF Symbol、字段标签、JSON Pointer、显示类型、样式、单位以及布尔值文案，但不能配置任意脚本或计算表达式。
+
+可复制的可选数据源片段位于：
+
+```text
+Examples/http-json-page.jsonc
+```
 
 ### 磁盘卷
 
