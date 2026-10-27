@@ -99,6 +99,7 @@ pub struct PageIndicatorWindow {
 pub enum ViewModelError {
     InvalidModel(ModelError),
     InvalidDimension(&'static str),
+    InvalidNonNegativeDimension(&'static str),
     InvalidLimit(&'static str),
     InvalidIcon,
     InvalidSelectedPage {
@@ -121,6 +122,12 @@ impl fmt::Display for ViewModelError {
                 write!(
                     formatter,
                     "view option {name} must be finite and greater than zero"
+                )
+            }
+            Self::InvalidNonNegativeDimension(name) => {
+                write!(
+                    formatter,
+                    "view option {name} must be finite and non-negative"
                 )
             }
             Self::InvalidLimit(name) => {
@@ -225,6 +232,20 @@ fn validate_options(options: ViewOptions) -> Result<(), ViewModelError> {
             return Err(ViewModelError::InvalidDimension(name));
         }
     }
+    for (name, value) in [
+        ("content_padding", options.layout.content_padding),
+        ("column_gap", options.layout.column_gap),
+        ("row_gap", options.layout.row_gap),
+        (
+            "section_header_height",
+            options.layout.section_header_height,
+        ),
+        ("chrome_height", options.layout.chrome_height),
+    ] {
+        if !value.is_finite() || value < 0.0 {
+            return Err(ViewModelError::InvalidNonNegativeDimension(name));
+        }
+    }
     if options.max_text_chars == 0 {
         return Err(ViewModelError::InvalidLimit("max_text_chars"));
     }
@@ -247,35 +268,39 @@ fn validate_semantic_icon(icon: &str) -> Result<String, ViewModelError> {
 }
 
 fn adaptive_column_count(options: ViewOptions) -> usize {
-    let logical_width = options.viewport_width / options.scale;
-    let content_width = (logical_width - options.layout.content_padding * 2.0).max(0.0);
-    let columns = ((content_width + options.layout.column_gap)
-        / (options.layout.min_widget_width + options.layout.column_gap))
-        .floor() as usize;
+    let logical_width = f64::from(options.viewport_width) / f64::from(options.scale);
+    let content_padding = f64::from(options.layout.content_padding);
+    let column_gap = f64::from(options.layout.column_gap);
+    let min_widget_width = f64::from(options.layout.min_widget_width);
+    let content_width = (logical_width - content_padding * 2.0).max(0.0);
+    let columns = ((content_width + column_gap) / (min_widget_width + column_gap)).floor() as usize;
     columns.clamp(1, 3)
 }
 
-fn logical_height(options: ViewOptions) -> f32 {
-    (options.viewport_height / options.scale - options.layout.chrome_height).max(0.0)
+fn logical_height(options: ViewOptions) -> f64 {
+    (f64::from(options.viewport_height) / f64::from(options.scale)
+        - f64::from(options.layout.chrome_height))
+    .max(0.0)
 }
 
 fn estimate_content_height(
     sections: &[SectionView],
     column_count: usize,
     options: ViewOptions,
-) -> f32 {
-    let mut height = options.layout.content_padding * 2.0;
+) -> f64 {
+    let row_gap = f64::from(options.layout.row_gap);
+    let mut height = f64::from(options.layout.content_padding) * 2.0;
     for (index, section) in sections.iter().enumerate() {
         if index > 0 {
-            height += options.layout.row_gap;
+            height += row_gap;
         }
         if section.title.is_some() {
-            height += options.layout.section_header_height + options.layout.row_gap;
+            height += f64::from(options.layout.section_header_height) + row_gap;
         }
         let rows = section.widgets.len().div_ceil(column_count);
         if rows > 0 {
-            height += rows as f32 * options.layout.min_widget_height;
-            height += rows.saturating_sub(1) as f32 * options.layout.row_gap;
+            height += rows as f64 * f64::from(options.layout.min_widget_height);
+            height += rows.saturating_sub(1) as f64 * row_gap;
         }
     }
     height
@@ -596,6 +621,97 @@ mod tests {
         let view = PageView::from_model(&page(Vec::new()), reduced).unwrap();
 
         assert!(view.layout.reduce_motion);
+    }
+
+    #[test]
+    fn rejects_non_positive_or_non_finite_required_dimensions() {
+        for field in [
+            "viewport_width",
+            "viewport_height",
+            "scale",
+            "min_widget_width",
+            "min_widget_height",
+        ] {
+            for value in [0.0, -1.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+                let mut invalid = options(900.0, 540.0);
+                match field {
+                    "viewport_width" => invalid.viewport_width = value,
+                    "viewport_height" => invalid.viewport_height = value,
+                    "scale" => invalid.scale = value,
+                    "min_widget_width" => invalid.layout.min_widget_width = value,
+                    "min_widget_height" => invalid.layout.min_widget_height = value,
+                    _ => unreachable!(),
+                }
+
+                assert_eq!(
+                    PageView::from_model(&page(Vec::new()), invalid),
+                    Err(ViewModelError::InvalidDimension(field)),
+                    "accepted {field}={value:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_negative_or_non_finite_non_negative_dimensions() {
+        for field in [
+            "content_padding",
+            "column_gap",
+            "row_gap",
+            "section_header_height",
+            "chrome_height",
+        ] {
+            for value in [-1.0, f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+                let mut invalid = options(900.0, 540.0);
+                match field {
+                    "content_padding" => invalid.layout.content_padding = value,
+                    "column_gap" => invalid.layout.column_gap = value,
+                    "row_gap" => invalid.layout.row_gap = value,
+                    "section_header_height" => invalid.layout.section_header_height = value,
+                    "chrome_height" => invalid.layout.chrome_height = value,
+                    _ => unreachable!(),
+                }
+
+                assert_eq!(
+                    PageView::from_model(&page(Vec::new()), invalid),
+                    Err(ViewModelError::InvalidNonNegativeDimension(field)),
+                    "accepted {field}={value:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn extreme_finite_dimensions_do_not_overflow_layout_arithmetic() {
+        let mut extreme = options(f32::MAX, f32::MAX);
+        extreme.scale = f32::MIN_POSITIVE;
+        extreme.layout.content_padding = f32::MAX;
+        extreme.layout.column_gap = f32::MAX;
+        extreme.layout.row_gap = f32::MAX;
+        extreme.layout.min_widget_width = f32::MIN_POSITIVE;
+        extreme.layout.min_widget_height = f32::MAX;
+        extreme.layout.section_header_height = f32::MAX;
+        extreme.layout.chrome_height = f32::MAX;
+
+        let view = PageView::from_model(&page(Vec::new()), extreme).unwrap();
+
+        assert_eq!(view.layout.column_count, 3);
+        assert!(!view.layout.vertical_overflow);
+    }
+
+    #[test]
+    fn accepts_zero_for_non_negative_layout_dimensions() {
+        let mut zeroed = options(900.0, 540.0);
+        zeroed.layout.content_padding = 0.0;
+        zeroed.layout.column_gap = 0.0;
+        zeroed.layout.row_gap = 0.0;
+        zeroed.layout.section_header_height = 0.0;
+        zeroed.layout.chrome_height = 0.0;
+
+        let view = PageView::from_model(&page(Vec::new()), zeroed).unwrap();
+
+        assert_eq!(view.layout.column_count, 3);
+        assert!(!view.layout.vertical_overflow);
     }
 
     #[test]

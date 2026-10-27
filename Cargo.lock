@@ -4074,6 +4074,7 @@ dependencies = [
 name = "panel-ui"
 version = "0.1.0"
 dependencies = [
+ "panel-model",
  "slint",
  "slint-build",
 ]
