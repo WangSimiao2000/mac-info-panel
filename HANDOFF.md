@@ -17,11 +17,13 @@ Branches:
 - `main`: Rust-only Info Panel implementation
 - `legacy/swift`: final pure Swift version at `be0789a`
 
-At handoff, `main` is twenty-five commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
+At handoff, `main` is twenty-seven commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
 
 Recent migration commits:
 
 ```text
+2223ebf 实现确定性插件包与 CLI
+f41dbcd 更新 Lua 运行器交接状态
 84e2678 实现受限 Lua-in-WASM 运行器
 5164578 更新跨平台指标交接状态
 180e0c2 实现跨平台系统指标源
@@ -65,6 +67,10 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - Malicious Lua fixtures cover exact fuel boundaries, infinite loops, recursion including completion-edge overflow, single-operation allocation bombs, oversized escaped strings/tables, sparse and excessive array indices, forbidden globals, hidden marker forgery, malformed returns, undeclared network access, unavailable host calls, and bounded source/wrapper input.
 - Extism wall-time and hard WASM page limits, secondary Piccolo heap observation, pre-counted streaming JSON output, bounded wrapper input, and a zero host-call budget remain enforced independently of fuel.
 - Local `example-lua-status` plugin executes end-to-end through the real runner and Extism host.
+- Deterministic `.info-panel-plugin` ZIP32 packages with canonical ordering, metadata, compression, SHA-256, and signature-provider verification.
+- `plugin-cli new`, `validate`, `test`, and `pack` with fail-closed trust defaults.
+- Capability-bound no-follow package reads, private staging, atomic no-clobber output, portable ASCII paths, and bounded offline JSON Schema checks.
+- Package attack tests cover traversal, links, special files, ZIP bombs, hidden data, path aliases, executable assets, permission grants, and runner provenance.
 - Page-model limits and untrusted identifier/numeric validation.
 - Extism 1.41.0 runtime adapter with checked execution timeout, exact per-call cancellation tokens, real WASM page memory ceiling, pre-copy output ceiling, and a monotonic pre-read `error_set` boundary.
 - Host ABI input uses a stopping limited writer; raw plugin configuration is byte-limited before JSON allocation.
@@ -114,7 +120,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 133 workspace tests, three runner unit tests, four focused Piccolo fuel tests, and seventeen real Extism/WASM smoke and Lua attack tests, plus workspace checks, formatting, strict Clippy, and release plugin/runner compilation.
+It covered 166 workspace tests, three runner unit tests, four focused Piccolo fuel tests, and twenty real Extism/WASM, Lua, and packaged-plugin tests, plus workspace checks, formatting, strict Clippy, and release plugin/runner compilation.
 
 Release desktop build also passed previously:
 
@@ -127,7 +133,7 @@ cargo build --release -p info-panel
 - The desktop binds the configured initial page and appearance to the renderer, but built-in overview, local-system, and lyrics page data remain future tasks.
 - Semantic page icon registration and display are not implemented; the validated plugin icon identifier is retained as metadata and is never interpreted as a font, file path, or raw glyph.
 - Host HTTP, cache, logging, locale, and platform functions are not yet exposed to plugins; Extism built-in HTTP and WASI remain disabled.
-- No plugin package parser, signature verification, plugin CLI, or repository client exists.
+- No production plugin signature trust root or repository client exists.
 - Platform traits and adapter skeletons exist, but native OS behavior does not.
 - No real media, lyrics, tray, display-selection, autostart, or installer implementation exists.
 - Cross-platform GitHub Actions were added but have not been observed running remotely.
@@ -147,9 +153,8 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Implement plugin packaging and `plugin-cli`.
-2. Implement remaining native platform services.
-3. Create MC Ops as a separate repository only after user approval for remote repository creation.
+1. Implement remaining native platform services.
+2. Create MC Ops as a separate repository only after user approval for remote repository creation.
 
 Prompts for these work items are under `.kiro/handoff/prompts/`.
 
