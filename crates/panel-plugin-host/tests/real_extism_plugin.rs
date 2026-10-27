@@ -56,6 +56,7 @@ fn loads_and_calls_real_extism_plugin() {
                 max_memory_bytes: 64 * 1024 * 1024,
                 max_output_bytes: 1024 * 1024,
                 max_error_bytes: 8 * 1024,
+                ..RuntimeLimits::default()
             },
             ..HostLimits::default()
         },

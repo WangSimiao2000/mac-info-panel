@@ -15,13 +15,16 @@ crates/panel-plugin-host        插件加载与输出验证
 crates/panel-plugin-runtime-extism
 crates/panel-ui                 Slint UI
 plugins/example-status          真实 WASM 示例插件
+plugins/example-lua-status      真实 Lua-in-WASM 示例插件
+plugins/lua-runner              受限 Lua runner WebAssembly 模块
+vendor/piccolo                  固定的纯 Rust Lua VM 源码
 themes/default                  Design tokens
 ```
 
-插件计划支持：
+插件支持：
 
 - `wasm@1`：编译后的 WebAssembly 插件
-- `lua@1`：在受限 Lua-in-WASM runner 中执行的 Lua 插件
+- `lua@1`：由受限 `lua-runner.wasm` 执行的 Lua 插件；没有原生 Lua 回退
 
 公共插件不支持 C ABI 动态库，也不能提供任意 UI 代码。
 

@@ -67,9 +67,9 @@
 - [x] 5.9 添加无限循环、OOM、超大输出和越权插件夹具。
 - [x] 5.10 建立 API 兼容测试并记录弃用策略。
 - [x] 5.11 定义 `runtime: wasm@1 | lua@1` manifest 字段。
-- [ ] 5.12 构建受限 `lua-runner.wasm`，禁用 OS、文件、进程和动态模块能力。
-- [ ] 5.13 添加 Lua 指令、内存、输出和宿主调用限额测试。
-- [ ] 5.14 创建 example-lua-status 插件并通过真实 runner smoke test。
+- [x] 5.12 构建受限 `lua-runner.wasm`，禁用 OS、文件、进程和动态模块能力。
+- [x] 5.13 添加 Lua 指令、内存、输出和宿主调用限额测试。
+- [x] 5.14 创建 example-lua-status 插件并通过真实 runner smoke test。
 
 ## 6. 插件包和 CLI
 

@@ -1,3 +1,4 @@
+use std::io::{self, Write};
 use std::sync::{
     Arc,
     atomic::{AtomicU8, Ordering},
@@ -7,9 +8,12 @@ use std::time::{Duration, Instant};
 use extism::{
     CancelHandle as ExtismCancelHandle, Function, Manifest, PTR, Plugin, UserData, Val, Wasm,
 };
+use serde::Serialize;
+use serde_json::value::RawValue;
 use thiserror::Error;
 
 const WASM_PAGE_BYTES: usize = 64 * 1024;
+const MAX_LUA_SOURCE_BYTES: usize = 1024 * 1024;
 const ERROR_NONE: u8 = 0;
 const ERROR_REPORTED: u8 = 1;
 const ERROR_TOO_LARGE: u8 = 2;
@@ -35,6 +39,14 @@ pub trait PluginRuntime {
     type Instance: PluginInstance;
 
     fn load(&self, wasm: &[u8], limits: RuntimeLimits) -> Result<Self::Instance, RuntimeError>;
+
+    fn load_lua(
+        &self,
+        _source: &[u8],
+        _limits: RuntimeLimits,
+    ) -> Result<Self::Instance, RuntimeError> {
+        Err(RuntimeError::LuaRunnerUnavailable)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -43,14 +55,25 @@ pub struct RuntimeLimits {
     pub max_memory_bytes: usize,
     pub max_output_bytes: usize,
     pub max_error_bytes: usize,
+    pub max_input_bytes: usize,
+    pub max_instructions: u64,
+    pub max_lua_memory_bytes: usize,
+    pub max_lua_stack_depth: usize,
+    pub max_host_calls: u32,
 }
 
 impl RuntimeLimits {
     pub fn validate(self) -> Result<Self, RuntimeError> {
         if self.checked_timeout_millis().is_none()
             || self.max_memory_bytes < WASM_PAGE_BYTES
+            || !self.max_memory_bytes.is_multiple_of(WASM_PAGE_BYTES)
             || self.max_output_bytes == 0
             || self.max_error_bytes == 0
+            || self.max_input_bytes == 0
+            || self.max_instructions == 0
+            || self.max_lua_memory_bytes == 0
+            || self.max_lua_memory_bytes > self.max_memory_bytes
+            || self.max_lua_stack_depth == 0
         {
             return Err(RuntimeError::InvalidLimits);
         }
@@ -90,6 +113,11 @@ impl Default for RuntimeLimits {
             max_memory_bytes: 64 * 1024 * 1024,
             max_output_bytes: 1024 * 1024,
             max_error_bytes: 8 * 1024,
+            max_instructions: 250_000,
+            max_input_bytes: 1024 * 1024,
+            max_lua_memory_bytes: 16 * 1024 * 1024,
+            max_lua_stack_depth: 128,
+            max_host_calls: 0,
         }
     }
 }
@@ -97,11 +125,112 @@ impl Default for RuntimeLimits {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ExtismRuntime;
 
+#[derive(Clone, Debug)]
+pub struct LuaWasmRuntime {
+    runner: Arc<[u8]>,
+}
+
+impl LuaWasmRuntime {
+    pub fn new(runner: impl Into<Vec<u8>>) -> Result<Self, RuntimeError> {
+        let runner = runner.into();
+        if runner.is_empty() {
+            return Err(RuntimeError::EmptyModule);
+        }
+        Ok(Self {
+            runner: Arc::from(runner),
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+enum InputMode {
+    Direct,
+    Lua {
+        source: Arc<str>,
+        limits: LuaRunnerLimits,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LuaRunnerLimits {
+    max_instructions: u64,
+    #[serde(skip)]
+    max_input_bytes: usize,
+    max_lua_memory_bytes: usize,
+    max_stack_depth: usize,
+    max_output_bytes: usize,
+    max_host_calls: u32,
+}
+
+impl From<RuntimeLimits> for LuaRunnerLimits {
+    fn from(limits: RuntimeLimits) -> Self {
+        Self {
+            max_instructions: limits.max_instructions,
+            max_input_bytes: limits.max_input_bytes,
+            max_lua_memory_bytes: limits.max_lua_memory_bytes,
+            max_stack_depth: limits.max_lua_stack_depth,
+            max_output_bytes: limits.max_output_bytes,
+            max_host_calls: limits.max_host_calls,
+        }
+    }
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct LuaRunnerCall<'a> {
+    source: &'a str,
+    request: &'a RawValue,
+    limits: LuaRunnerLimits,
+}
 const CALL_PENDING: u8 = 0;
 const CALL_ACTIVE: u8 = 1;
 const CALL_FINISHING: u8 = 2;
 const CALL_FINISHED: u8 = 3;
 const CALL_CANCELLED: u8 = 4;
+
+fn encode_lua_runner_call(call: &LuaRunnerCall<'_>, limit: usize) -> Result<Vec<u8>, RuntimeError> {
+    let mut writer = InputLimitedWriter::new(limit);
+    if serde_json::to_writer(&mut writer, call).is_err() {
+        return if writer.exceeded {
+            Err(RuntimeError::InputTooLarge { limit })
+        } else {
+            Err(RuntimeError::CallFailed)
+        };
+    }
+    Ok(writer.bytes)
+}
+
+struct InputLimitedWriter {
+    bytes: Vec<u8>,
+    limit: usize,
+    exceeded: bool,
+}
+
+impl InputLimitedWriter {
+    fn new(limit: usize) -> Self {
+        Self {
+            bytes: Vec::with_capacity(limit.min(4_096)),
+            limit,
+            exceeded: false,
+        }
+    }
+}
+
+impl Write for InputLimitedWriter {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        if bytes.len() > self.limit.saturating_sub(self.bytes.len()) {
+            self.exceeded = true;
+            return Err(io::Error::other("Lua wrapper input limit exceeded"));
+        }
+        self.bytes.extend_from_slice(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
 
 pub struct ExtismPlugin {
     plugin: Plugin,
@@ -109,6 +238,7 @@ pub struct ExtismPlugin {
     error_kind: Arc<AtomicU8>,
     max_output_bytes: usize,
     execution_timeout: Duration,
+    input_mode: InputMode,
 }
 
 #[derive(Clone)]
@@ -271,7 +401,37 @@ impl PluginRuntime for ExtismRuntime {
             error_kind,
             max_output_bytes: limits.max_output_bytes,
             execution_timeout: limits.normalized_timeout(),
+            input_mode: InputMode::Direct,
         })
+    }
+}
+
+impl PluginRuntime for LuaWasmRuntime {
+    type Instance = ExtismPlugin;
+
+    fn load(&self, wasm: &[u8], limits: RuntimeLimits) -> Result<Self::Instance, RuntimeError> {
+        ExtismRuntime.load(wasm, limits)
+    }
+
+    fn load_lua(
+        &self,
+        source: &[u8],
+        limits: RuntimeLimits,
+    ) -> Result<Self::Instance, RuntimeError> {
+        let limits = limits.validate()?;
+        let source_limit = limits.max_input_bytes.min(MAX_LUA_SOURCE_BYTES);
+        if source.len() > source_limit {
+            return Err(RuntimeError::InputTooLarge {
+                limit: source_limit,
+            });
+        }
+        let source = std::str::from_utf8(source).map_err(|_| RuntimeError::InvalidLuaSource)?;
+        let mut plugin = ExtismRuntime.load(&self.runner, limits)?;
+        plugin.input_mode = InputMode::Lua {
+            source: Arc::from(source),
+            limits: limits.into(),
+        };
+        Ok(plugin)
     }
 }
 
@@ -291,6 +451,26 @@ impl PluginInstance for ExtismPlugin {
         input: &[u8],
         cancellation: &Self::Cancellation,
     ) -> Result<Vec<u8>, RuntimeError> {
+        let wrapped_input = match &self.input_mode {
+            InputMode::Direct => None,
+            InputMode::Lua { source, limits } => {
+                if !matches!(function, "metadata" | "validate_config" | "refresh") {
+                    return Err(RuntimeError::CallFailed);
+                }
+                let request: &RawValue =
+                    serde_json::from_slice(input).map_err(|_| RuntimeError::CallFailed)?;
+                Some(encode_lua_runner_call(
+                    &LuaRunnerCall {
+                        source,
+                        request,
+                        limits: *limits,
+                    },
+                    limits.max_input_bytes,
+                )?)
+            }
+        };
+        let input = wrapped_input.as_deref().unwrap_or(input);
+
         match cancellation.state.compare_exchange(
             CALL_PENDING,
             CALL_ACTIVE,
@@ -381,6 +561,12 @@ pub enum RuntimeError {
     CancellationTooLate,
     #[error("plugin could not be loaded")]
     LoadFailed,
+    #[error("restricted Lua-in-WASM runner is unavailable")]
+    LuaRunnerUnavailable,
+    #[error("Lua source is not valid UTF-8")]
+    InvalidLuaSource,
+    #[error("plugin input exceeds the {limit}-byte limit")]
+    InputTooLarge { limit: usize },
     #[error("plugin execution timed out")]
     Timeout,
     #[error("plugin exceeded its memory limit")]
@@ -511,6 +697,45 @@ mod tests {
     }
 
     #[test]
+    fn lua_wrapper_writer_accepts_exact_limit_and_stops_one_byte_over() {
+        let request: &RawValue = serde_json::from_str(r#"{"value":"ok"}"#).unwrap();
+        let limits: LuaRunnerLimits = RuntimeLimits::default().into();
+        let call = LuaRunnerCall {
+            source: "function metadata() return {} end",
+            request,
+            limits,
+        };
+        let encoded = encode_lua_runner_call(&call, usize::MAX).unwrap();
+        assert_eq!(
+            encode_lua_runner_call(&call, encoded.len()).unwrap(),
+            encoded
+        );
+        assert_eq!(
+            encode_lua_runner_call(&call, encoded.len() - 1),
+            Err(RuntimeError::InputTooLarge {
+                limit: encoded.len() - 1
+            })
+        );
+    }
+
+    #[test]
+    fn lua_wrapper_writer_charges_json_escape_expansion() {
+        let request: &RawValue = serde_json::from_str("{}").unwrap();
+        let source = "\\\"\\\n".repeat(64);
+        let limits: LuaRunnerLimits = RuntimeLimits::default().into();
+        let call = LuaRunnerCall {
+            source: &source,
+            request,
+            limits,
+        };
+        let raw_budget = source.len() + request.get().len() + 128;
+        assert_eq!(
+            encode_lua_runner_call(&call, raw_budget),
+            Err(RuntimeError::InputTooLarge { limit: raw_budget })
+        );
+    }
+
+    #[test]
     fn rejects_empty_modules_and_invalid_limits() {
         assert_eq!(
             ExtismRuntime.load(&[], RuntimeLimits::default()).err(),
@@ -527,6 +752,24 @@ mod tests {
                 )
                 .err(),
             Some(RuntimeError::InvalidLimits)
+        );
+        assert_eq!(
+            RuntimeLimits {
+                max_memory_bytes: 4 * 1024 * 1024,
+                max_lua_memory_bytes: 4 * 1024 * 1024 + 1,
+                ..RuntimeLimits::default()
+            }
+            .validate(),
+            Err(RuntimeError::InvalidLimits)
+        );
+        assert_eq!(
+            RuntimeLimits {
+                max_memory_bytes: 4 * 1024 * 1024 + 1,
+                max_lua_memory_bytes: 4 * 1024 * 1024,
+                ..RuntimeLimits::default()
+            }
+            .validate(),
+            Err(RuntimeError::InvalidLimits)
         );
     }
 
@@ -568,6 +811,7 @@ mod tests {
                 MEMORY_GROWTH,
                 RuntimeLimits {
                     max_memory_bytes: 4 * 1024 * 1024,
+                    max_lua_memory_bytes: 4 * 1024 * 1024,
                     ..RuntimeLimits::default()
                 },
             )

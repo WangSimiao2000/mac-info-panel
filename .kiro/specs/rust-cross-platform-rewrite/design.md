@@ -16,7 +16,7 @@
 
 Lua 插件不直接嵌入宿主原生 Lua VM。宿主加载受控的 `lua-runner.wasm`，再将 `plugin.lua`、配置和调用上下文传入 runner。Lua 和原生 WASM 插件共享同一权限检查、超时、内存限制和 `PageModel` 验证流程。公共插件仓库不接受 C ABI 动态库。
 
-运行时标识是 manifest 的必填字段：`wasm@1` 只能对应 `plugin.wasm`，`lua@1` 只能对应 `plugin.lua`。在受限 `lua-runner.wasm` 可用前，宿主必须拒绝 `lua@1`，不得回退到原生 Lua VM。Extism 的内建 HTTP 和 WASI 均关闭；网络能力只接入 `panel-http` 校验后的宿主函数。
+运行时标识是 manifest 的必填字段：`wasm@1` 只能对应 `plugin.wasm`，`lua@1` 只能对应 `plugin.lua`。`lua@1` 只通过显式提供的受限 `lua-runner.wasm` 加载；未提供 runner 时宿主拒绝加载，且永不回退到原生 Lua VM。runner 使用固定的纯 Rust Piccolo VM，在每次 ABI 调用中从空环境建立严格 allowlist。`maxInstructions` 是保守的 Piccolo fuel 单位：executor 基础 step、callback、sequence 和 VM opcode 使用固定权重并在任何状态变化前 checked consume，余额不足时不执行且永不形成负 fuel；callback 或标准库操作内部的线性工作不宣称逐元素计数，仍由 wall-time 和外层 WASM memory 硬限兜底。source 初始化与 entry 共用总预算。Extism 执行 wall-time、WASM page 硬内存上限和 output pre-copy 上限；Piccolo allocation metrics 仅作为每步间的二次检测，不是分配器硬限。Lua 输出先通过无分配 counting writer 完成结构、转义后字节和数组连续性验证，再分配精确大小的最终 buffer。Extism 的内建 HTTP 和 WASI 均关闭；网络能力只接入 `panel-http` 校验后的宿主函数。
 
 插件 ABI 1 包含三个 JSON 调用：`metadata(request) -> response`、`validate_config(request) -> response` 和 `refresh(request) -> response`。宿主在加载时比较 package identity、manifest 和 metadata，在刷新前验证配置，并在反序列化后验证 `PageModel`。每次调用都受同一执行时间、WASM page、输入、输出和错误字节上限约束。适配器在 Extism 内建 `error_set`、`http_request` 和日志函数读取之前以同名 host functions 覆盖入口。`error_set` 只查询 allocation 长度而不读取或记录插件错误正文；直接 Extism HTTP 固定拒绝，日志正文直接丢弃。超限错误、无效指针和未中介网络均 fail closed。宿主捕获 runtime unwind，丢弃 panic payload，并永久标记该实例失效，后续调用必须重载。
 

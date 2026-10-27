@@ -343,7 +343,7 @@ fn refuses_lua_without_a_restricted_wasm_runner() {
         )
         .unwrap()
         .load(manifest.clone(), package, &grant(&manifest)),
-        Err(HostError::LuaRunnerUnavailable)
+        Err(HostError::Runtime(RuntimeError::LuaRunnerUnavailable))
     ));
 }
 

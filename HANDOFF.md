@@ -57,11 +57,17 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - Host-owned Slint components for Metric, Status, Gauge, Text, Progress, List, and Chart widgets.
 - Appearance scale and Reduce Motion binding from desktop configuration through the Rust renderer payload.
 - Versioned page model with Metric, Status, Gauge, Text, Progress, List, and Chart widgets.
+- Restricted `lua-runner.wasm` built around vendored Piccolo 0.3.3, with no native Lua VM or fallback.
+- Fresh strict-allowlist Lua VM per ABI call, exposing only safe base/math/string/table operations plus `metadata`, `validate_config`, `refresh`, `json_null`, and `json_array`; coroutine, OS/file/process/environment/module/debug/metatable/raw/collection/host surfaces are absent.
+- Conservative weighted Lua fuel with checked non-negative consumption: each base step, callback, sequence and VM opcode is fully funded before state changes; source and entry share one budget, and zero-progress exhaustion fails immediately. Frame depth remains checked before and after each step.
+- Malicious Lua fixtures cover exact fuel boundaries, infinite loops, recursion including completion-edge overflow, single-operation allocation bombs, oversized escaped strings/tables, sparse and excessive array indices, forbidden globals, hidden marker forgery, malformed returns, undeclared network access, unavailable host calls, and bounded source/wrapper input.
+- Extism wall-time and hard WASM page limits, secondary Piccolo heap observation, pre-counted streaming JSON output, bounded wrapper input, and a zero host-call budget remain enforced independently of fuel.
+- Local `example-lua-status` plugin executes end-to-end through the real runner and Extism host.
 - Page-model limits and untrusted identifier/numeric validation.
 - Extism 1.41.0 runtime adapter with checked execution timeout, exact per-call cancellation tokens, real WASM page memory ceiling, pre-copy output ceiling, and a monotonic pre-read `error_set` boundary.
 - Host ABI input uses a stopping limited writer; raw plugin configuration is byte-limited before JSON allocation.
 - Runtime panics are caught without formatting their payload, invalidate the instance, and require reload.
-- `runtime: wasm@1 | lua@1` manifest discriminator with strict entry matching; `lua@1` fails closed until the Lua-in-WASM runner exists.
+- `runtime: wasm@1 | lua@1` manifest discriminator with strict entry matching; `lua@1` loads only through an explicitly supplied restricted runner WASM and never falls back to a native VM.
 - Complete `metadata`, `validate_config`, and `refresh` JSON ABI with package/manifest/metadata identity checks.
 - Host/API/minimum-version compatibility, permission grants, permission-upgrade diffs, and host-mediated `panel-http` network permissions.
 - Per-plugin generation checks, exact per-call cancellation, bounded diagnostics, exponential backoff, real production jitter with injectable deterministic sources, and one manual retry per backoff cycle.
@@ -106,7 +112,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 130 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
+It covered 133 workspace tests, three runner unit tests, four focused Piccolo fuel tests, and seventeen real Extism/WASM smoke and Lua attack tests, plus workspace checks, formatting, strict Clippy, and release plugin/runner compilation.
 
 Release desktop build also passed previously:
 
@@ -119,7 +125,6 @@ cargo build --release -p info-panel
 - The desktop binds the configured initial page and appearance to the renderer, but built-in overview, local-system, and lyrics page data remain future tasks.
 - Semantic page icon registration and display are not implemented; the validated plugin icon identifier is retained as metadata and is never interpreted as a font, file path, or raw glyph.
 - Host HTTP, cache, logging, locale, and platform functions are not yet exposed to plugins; Extism built-in HTTP and WASI remain disabled.
-- Lua-in-WASM runner does not exist, so `lua@1` manifests are intentionally rejected.
 - No plugin package parser, signature verification, plugin CLI, or repository client exists.
 - Platform traits and adapter skeletons exist, but native OS behavior does not.
 - No real media, lyrics, tray, display-selection, autostart, or installer implementation exists.
@@ -140,10 +145,9 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Prototype the restricted Lua-in-WASM runner.
-2. Implement remaining native platform services.
-3. Implement plugin packaging and `plugin-cli`.
-4. Create MC Ops as a separate repository only after user approval for remote repository creation.
+1. Implement remaining native platform services.
+2. Implement plugin packaging and `plugin-cli`.
+3. Create MC Ops as a separate repository only after user approval for remote repository creation.
 
 Prompts for these work items are under `.kiro/handoff/prompts/`.
 

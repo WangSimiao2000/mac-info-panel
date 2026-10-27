@@ -49,7 +49,8 @@ impl Default for HostLimits {
 }
 
 impl HostLimits {
-    fn validate(self) -> Result<Self, HostError> {
+    fn validate(mut self) -> Result<Self, HostError> {
+        self.runtime.max_input_bytes = self.max_input_bytes;
         self.runtime.validate()?;
         if self.max_input_bytes == 0 || self.max_diagnostics == 0 || self.max_diagnostic_chars == 0
         {
@@ -356,8 +357,10 @@ impl<R: PluginRuntime, J: JitterSource> PluginHost<R, J> {
         manifest.validate_for_host(&self.host_version, HOST_API_VERSION)?;
         validate_package_identity(&manifest, &package)?;
         validate_grant(&manifest, grant)?;
-        if manifest.runtime == PluginRuntimeKind::LuaV1 {
-            return Err(HostError::LuaRunnerUnavailable);
+        if manifest.runtime == PluginRuntimeKind::LuaV1
+            && package.bytes.len() > self.limits.max_input_bytes
+        {
+            return Err(HostError::InputTooLarge);
         }
 
         let network_permissions = manifest
@@ -366,11 +369,13 @@ impl<R: PluginRuntime, J: JitterSource> PluginHost<R, J> {
             .iter()
             .map(|origin| network_permission(origin))
             .collect::<Result<Vec<_>, HostError>>()?;
-        let mut instance =
-            match catch_runtime_unwind(|| self.runtime.load(&package.bytes, self.limits.runtime)) {
-                Ok(result) => result?,
-                Err(()) => return Err(HostError::RuntimePanicked),
-            };
+        let mut instance = match catch_runtime_unwind(|| match manifest.runtime {
+            PluginRuntimeKind::WasmV1 => self.runtime.load(&package.bytes, self.limits.runtime),
+            PluginRuntimeKind::LuaV1 => self.runtime.load_lua(&package.bytes, self.limits.runtime),
+        }) {
+            Ok(result) => result?,
+            Err(()) => return Err(HostError::RuntimePanicked),
+        };
         let instance_valid = Arc::new(AtomicBool::new(true));
         let metadata_cancellation = runtime_cancellation(&instance, &instance_valid)?;
         let metadata: MetadataResponse = call_json(
@@ -932,8 +937,6 @@ pub enum HostError {
     PermissionDenied,
     #[error("plugin network permission is invalid")]
     InvalidNetworkPermission,
-    #[error("lua@1 requires the restricted Lua-in-WASM runner")]
-    LuaRunnerUnavailable,
     #[error("plugin metadata does not match its package manifest")]
     MetadataMismatch,
     #[error("plugin configuration has not passed validation")]
@@ -970,5 +973,16 @@ mod tests {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         assert_ne!(state.random, 0);
+    }
+
+    #[test]
+    fn host_input_limit_is_bound_to_runtime_wrapper_limit() {
+        let limits = HostLimits {
+            max_input_bytes: 257,
+            ..HostLimits::default()
+        }
+        .validate()
+        .unwrap();
+        assert_eq!(limits.runtime.max_input_bytes, 257);
     }
 }

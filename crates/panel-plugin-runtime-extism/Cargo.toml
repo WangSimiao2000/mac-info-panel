@@ -9,3 +9,5 @@ repository.workspace = true
 [dependencies]
 extism.workspace = true
 thiserror.workspace = true
+serde.workspace = true
+serde_json.workspace = true
