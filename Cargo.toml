@@ -3,6 +3,7 @@ members = [
     "apps/desktop",
     "crates/panel-core",
     "crates/panel-config",
+    "crates/panel-http",
     "crates/panel-model",
     "crates/panel-plugin-api",
     "crates/panel-plugin-host",
@@ -19,17 +20,23 @@ license = "MIT"
 repository = "https://github.com/WangSimiao2000/mac-info-panel"
 
 [workspace.dependencies]
+bytes = "1.10"
 extism = { version = "1.41.0", default-features = false, features = ["wasmtime-default-features"] }
+futures-util = "0.3.31"
+http = "1.3"
 panel-core = { path = "crates/panel-core" }
 panel-config = { path = "crates/panel-config" }
+panel-http = { path = "crates/panel-http" }
 panel-model = { path = "crates/panel-model" }
 panel-plugin-api = { path = "crates/panel-plugin-api" }
 panel-plugin-host = { path = "crates/panel-plugin-host" }
 panel-plugin-runtime-extism = { path = "crates/panel-plugin-runtime-extism" }
 panel-ui = { path = "crates/panel-ui" }
+reqwest = { version = "0.12.24", default-features = false, features = ["rustls-tls", "stream"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0"
 slint = "1.18.1"
 slint-build = "1.18.1"
 thiserror = "2.0.21"
+tokio = { version = "1.48.0", features = ["net", "time"] }
 url = "2.5.8"
