@@ -2,6 +2,48 @@ import AppKit
 import CoreGraphics
 import SwiftUI
 
+private final class PageSwitchingHostingView<Content: View>: NSHostingView<Content> {
+    var onPreviousPage: (() -> Void)?
+    var onNextPage: (() -> Void)?
+
+    private var accumulatedDelta: CGFloat = 0
+    private var gestureTriggered = false
+    private var lastMouseWheelSwitch = Date.distantPast
+
+    override func scrollWheel(with event: NSEvent) {
+        let delta = abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY)
+            ? event.scrollingDeltaX
+            : event.scrollingDeltaY
+
+        if event.phase == .began {
+            accumulatedDelta = 0
+            gestureTriggered = false
+        }
+        if event.momentumPhase != [] && gestureTriggered { return }
+
+        if event.hasPreciseScrollingDeltas {
+            accumulatedDelta += delta
+            guard !gestureTriggered, abs(accumulatedDelta) >= 28 else { return }
+            gestureTriggered = true
+            switchPage(delta: accumulatedDelta)
+        } else {
+            guard abs(delta) > 0, Date().timeIntervalSince(lastMouseWheelSwitch) >= 0.35 else { return }
+            lastMouseWheelSwitch = Date()
+            switchPage(delta: delta)
+        }
+
+        if event.phase == .ended || event.phase == .cancelled {
+            accumulatedDelta = 0
+            gestureTriggered = false
+        }
+    }
+
+    private func switchPage(delta: CGFloat) {
+        if delta > 0 { onPreviousPage?() }
+        else { onNextPage?() }
+    }
+}
+
 private final class PassivePanel: NSPanel {
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
@@ -25,7 +67,9 @@ final class PanelWindowController {
             backing: .buffered,
             defer: false
         )
-        let hostingView = NSHostingView(rootView: DashboardView(model: model))
+        let hostingView = PageSwitchingHostingView(rootView: DashboardView(model: model))
+        hostingView.onPreviousPage = { [weak model] in model?.previousPage() }
+        hostingView.onNextPage = { [weak model] in model?.nextPage() }
         hostingView.wantsLayer = true
         hostingView.layer?.cornerRadius = 30
         hostingView.layer?.cornerCurve = .continuous
@@ -37,7 +81,7 @@ final class PanelWindowController {
         panel.invalidateShadow()
         panel.level = .normal
         panel.hidesOnDeactivate = false
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false
         panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
         panel.animationBehavior = .none
 
