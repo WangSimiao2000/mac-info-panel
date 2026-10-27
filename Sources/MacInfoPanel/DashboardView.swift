@@ -19,7 +19,7 @@ struct DashboardView: View {
         }
         .padding(14)
         .foregroundStyle(.primary)
-        .windowGlass()
+        .systemWindowSurface()
         .clipShape(windowShape)
         .overlay(windowShape.stroke(Color.primary.opacity(0.12), lineWidth: 1))
         .shadow(color: .black.opacity(0.28), radius: 20, y: 8)
@@ -46,9 +46,8 @@ struct DashboardView: View {
                 .font(.system(size: 25, weight: .semibold))
                 .monospacedDigit()
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 6)
         .frame(height: 48)
-        .controlGlass(cornerRadius: 18)
     }
 
     @ViewBuilder
@@ -519,13 +518,8 @@ private struct StatusDot: View {
 }
 
 private extension View {
-    @ViewBuilder
-    func windowGlass() -> some View {
-        if #available(macOS 26.0, *) {
-            self.glassEffect(.regular.tint(Color(nsColor: .windowBackgroundColor).opacity(0.18)), in: windowShape)
-        } else {
-            self.background(.ultraThickMaterial, in: windowShape)
-        }
+    func systemWindowSurface() -> some View {
+        self.background(Color(nsColor: .windowBackgroundColor), in: windowShape)
     }
 
     @ViewBuilder

@@ -9,7 +9,8 @@
 - 鼠标位于面板时，滚轮或触控板上下/左右滑动可切换页面；主显示器上的应用不受影响。
 - 状态栏菜单切页，或按配置自动轮播页面。
 - 大字号、两列以内布局，适合手机大小的 1280×720 小屏。
-- macOS 26+ 使用系统 Liquid Glass，macOS 14–15 回退到原生 Material。
+- macOS 26+ 仅在分页导航等顶层控制元素使用系统 Liquid Glass；内容区域使用系统窗口背景和语义颜色，避免把所有内容做成玻璃。
+- macOS 14–15 的导航控制自动回退到原生 Material。
 - 直接通过 `media-control` 读取 macOS Now Playing，并在应用内搜索、匹配和解析同步歌词。
 - 首个内置歌词 provider 使用网易云 HTTPS Web API，不需要 OmniLyrics 或 .NET 运行时。
 - 通过配置把任意 HTTPS JSON API 映射成状态、数值和仪表卡片。
