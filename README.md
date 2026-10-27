@@ -8,7 +8,7 @@
 - 无边框、非激活，不抢走正在使用的应用焦点。
 - 鼠标位于面板时，滚轮或触控板上下/左右滑动可切换页面；主显示器上的应用不受影响。
 - 状态栏菜单切页，或按配置自动轮播页面。
-- 大字号、两列以内布局，适合手机大小的 1280×720 小屏。
+- 大字号、每页聚焦单一任务，并按内容使用一到三列，适合手机大小的 1280×720 小屏。
 - macOS 26+ 仅在分页导航等顶层控制元素使用系统 Liquid Glass；内容区域使用系统窗口背景和语义颜色，避免把所有内容做成玻璃。
 - macOS 14–15 的导航控制自动回退到原生 Material。
 - 直接通过 `media-control` 读取 macOS Now Playing，并在应用内搜索、匹配和解析同步歌词。
@@ -33,6 +33,24 @@
 - 状态栏菜单可指定页面、上一页、下一页和开关自动轮播。
 
 面板仍是 nonactivating panel，滚动不会把它变成前台应用；但为了接收滚轮，它不再把该小屏上的鼠标事件穿透给后面的窗口。
+
+页面采用带方向的 spring 过渡：前进从右侧进入，后退从左侧进入；歌词行单独使用垂直 spring 切换。系统启用“减少动态效果”时，两类动画都会关闭。
+
+## UI 代码结构
+
+```text
+UI/
+├── PanelTheme.swift
+├── Components/
+│   └── PanelComponents.swift
+└── Pages/
+    ├── OverviewPage.swift
+    ├── LyricsPage.swift
+    ├── HTTPJSONPage.swift
+    └── LocalSystemPage.swift
+```
+
+`DashboardView.swift` 只保留页面路由、顶部信息和分页导航；AppKit 继续负责无焦点窗口、显示器定位和滚轮事件；SwiftUI 负责页面与组件。
 
 ## 安装
 
