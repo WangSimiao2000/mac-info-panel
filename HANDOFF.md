@@ -17,11 +17,15 @@ Branches:
 - `main`: Rust-only Info Panel implementation
 - `legacy/swift`: final pure Swift version at `be0789a`
 
-At handoff, `main` is ten commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
+At handoff, `main` is fourteen commits ahead of `origin/main`; neither `main` nor `legacy/swift` has been pushed by this agent.
 
 Recent migration commits:
 
 ```text
+59f4f91 集成平台与指标工作区
+a4a10a5 实现通用指标采样逻辑
+25a3dad 定义平台能力与服务契约
+94b6c03 更新配置启动交接状态
 051a661 连接配置引导与桌面启动
 39ef884 更新 HTTP 客户端交接状态
 f02e3c0 实现安全宿主 HTTP 客户端
@@ -60,6 +64,11 @@ fe9cc2c 将跨平台版本命名为 Info Panel
 - JSONC parser that preserves comment markers inside strings.
 - Configuration validation for IDs, initial page, bounds, duplicates, and unknown fields.
 - Deterministic `AppState`/`AppEvent` reducer.
+- Capability-reporting traits for window, displays, tray, autostart, and media.
+- Explicitly unsupported macOS, Windows, and Linux adapter skeletons.
+- Generic metrics sampling with injected source and monotonic clock.
+- Safe CPU and network deltas, per-interface baselines, and reset handling.
+- Visibility-aware sampling policy and bounded metric normalization.
 - Automatic page rotation, visibility behavior, plugin generation race protection, bounded diagnostics.
 - Pure Swift implementation removed from `main` and retained on `legacy/swift`.
 
@@ -71,7 +80,7 @@ The last full local validation passed:
 ./Scripts/check-rust.sh
 ```
 
-It covered 50 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
+It covered 64 normal tests plus one real Extism/WASM smoke test, workspace check, formatting, strict Clippy, and release plugin compilation.
 
 Release desktop build also passed previously:
 
@@ -87,7 +96,7 @@ cargo build --release -p info-panel
 - Manifest does not yet declare `runtime: wasm@1 | lua@1`.
 - Lua-in-WASM runner does not exist.
 - No plugin package parser, signature verification, plugin CLI, or repository client exists.
-- Platform service traits and macOS/Windows/Linux implementations do not exist.
+- Platform traits and adapter skeletons exist, but native OS behavior does not.
 - No real metrics, media, lyrics, tray, display-selection, autostart, or installer implementation exists.
 - Cross-platform GitHub Actions were added but have not been observed running remotely.
 - Slint licensing must be reviewed before public binary distribution. Do not assume MIT alone covers the final linked application.
@@ -108,7 +117,7 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 1. Finish plugin manifest runtime selection and hard resource limits.
 2. Implement PageModel-to-Slint rendering.
-3. Add platform traits and generic metrics.
+3. Implement native platform services and metrics sources.
 4. Prototype Lua-in-WASM runner after the host limits are complete.
 5. Implement plugin packaging and `plugin-cli`.
 6. Create MC Ops as a separate repository only after user approval for remote repository creation.
