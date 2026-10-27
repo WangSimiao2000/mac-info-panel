@@ -23,6 +23,10 @@ rm -rf "$INSTALL_APP"
 /usr/bin/plutil -replace StandardErrorPath -string "$HOME/Library/Logs/MacInfoPanel.error.log" "$PLIST"
 
 /bin/launchctl bootout "gui/$(id -u)/$LABEL" 2>/dev/null || true
+for _ in {1..20}; do
+  /usr/bin/pgrep -x MacInfoPanel >/dev/null || break
+  /bin/sleep 0.25
+done
 /bin/launchctl bootstrap "gui/$(id -u)" "$PLIST"
 /bin/launchctl kickstart "gui/$(id -u)/$LABEL" 2>/dev/null || true
 

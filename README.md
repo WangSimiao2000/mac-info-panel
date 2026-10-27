@@ -5,7 +5,8 @@
 ## 功能
 
 - 从 OmniLyrics 本机 API 显示歌曲、歌手、同步歌词和下一行歌词。
-- 通过专用 SSH Key 和 forced command 显示 mc-ops、Minecraft 与服务器主机状态。
+- 通过现有 `mc-status` 公开脱敏 JSON 显示 Minecraft 状态，无需 SSH 即可工作。
+- 配置专用 SSH Key 和 forced command 后，自动升级为 mc-ops、Minecraft 与服务器主机实时状态。
 - 原生采集本机 CPU、内存、负载、热状态、网络、内置盘和 exSSD 状态。
 - 自动寻找名为 `Wokyis` 的显示器，并兼容当前硬件 vendor/model ID。
 - 无边框、无焦点、鼠标穿透，不创建 macOS 全屏 Space。
@@ -75,9 +76,10 @@ cp config.example.json "$HOME/.config/mac-info-panel/config.json"
   "sshUser": "mickeymiao",
   "sshKeyPath": "~/.ssh/id_ed25519_mc_panel",
   "sshCommand": "mcops-status-v1",
+  "publicStatusURL": "https://blog.mickeymiao.cn/mc-status/status.json",
   "lyricsRefreshSeconds": 1,
   "systemRefreshSeconds": 3,
-  "remoteRefreshSeconds": 15
+  "remoteRefreshSeconds": 60
 }
 ```
 
@@ -93,7 +95,13 @@ open -a OmniLyrics
 
 ## mc-ops 服务器接入
 
-详细步骤见 [`server/README.md`](server/README.md)。服务器需安装：
+第一版会直接读取已经存在的公开脱敏状态：
+
+```text
+https://blog.mickeymiao.cn/mc-status/status.json
+```
+
+它能显示服务器在线状态、版本、在线人数和运行时间，最多约有 10 分钟延迟，不需要 SSH Key。需要服务器 CPU、内存和磁盘实时状态时，再按 [`server/README.md`](server/README.md) 配置专用 SSH forced command。服务器需安装：
 
 ```text
 /usr/local/libexec/mcops-panel-status.py
@@ -122,6 +130,6 @@ ssh -T \
 
 - 歌词：1 秒
 - 本机状态：3 秒
-- 远端 mc-ops：15 秒
+- 远端 mc-ops：60 秒（公开数据源自身约每 10 分钟更新）
 
 窗口是静态原生 SwiftUI 视图，没有 60 FPS 游戏循环。真实瓦数需要持续运行 root 权限的 `powermetrics`，第一版有意不接入，以避免额外权限和功耗。

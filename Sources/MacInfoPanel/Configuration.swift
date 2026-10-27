@@ -7,6 +7,7 @@ struct PanelConfiguration: Sendable {
     let sshUser: String
     let sshKeyPath: String
     let sshCommand: String
+    let publicStatusURL: URL
     let lyricsRefreshSeconds: Double
     let systemRefreshSeconds: Double
     let remoteRefreshSeconds: Double
@@ -19,9 +20,10 @@ struct PanelConfiguration: Sendable {
             sshUser: "mickeymiao",
             sshKeyPath: NSString(string: "~/.ssh/id_ed25519_mc_panel").expandingTildeInPath,
             sshCommand: "mcops-status-v1",
+            publicStatusURL: URL(string: "https://blog.mickeymiao.cn/mc-status/status.json")!,
             lyricsRefreshSeconds: 1,
             systemRefreshSeconds: 3,
-            remoteRefreshSeconds: 15
+            remoteRefreshSeconds: 60
         )
 
         let path = NSString(string: "~/.config/mac-info-panel/config.json").expandingTildeInPath
@@ -37,6 +39,7 @@ struct PanelConfiguration: Sendable {
             sshUser: object["sshUser"] as? String ?? defaults.sshUser,
             sshKeyPath: NSString(string: object["sshKeyPath"] as? String ?? defaults.sshKeyPath).expandingTildeInPath,
             sshCommand: object["sshCommand"] as? String ?? defaults.sshCommand,
+            publicStatusURL: (object["publicStatusURL"] as? String).flatMap(URL.init(string:)) ?? defaults.publicStatusURL,
             lyricsRefreshSeconds: positive(object["lyricsRefreshSeconds"], fallback: defaults.lyricsRefreshSeconds),
             systemRefreshSeconds: positive(object["systemRefreshSeconds"], fallback: defaults.systemRefreshSeconds),
             remoteRefreshSeconds: positive(object["remoteRefreshSeconds"], fallback: defaults.remoteRefreshSeconds)

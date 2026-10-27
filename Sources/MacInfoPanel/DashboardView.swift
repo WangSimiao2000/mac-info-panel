@@ -125,7 +125,7 @@ struct DashboardView: View {
             .frame(maxHeight: .infinity)
 
             StatusLine(
-                text: model.minecraftError ?? "mc-ops 只读连接正常",
+                text: model.minecraftError ?? model.minecraft?.warning ?? "mc-ops 只读连接正常",
                 good: model.minecraftError == nil
             )
         }

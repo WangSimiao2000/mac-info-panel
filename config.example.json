@@ -5,7 +5,8 @@
   "sshUser": "mickeymiao",
   "sshKeyPath": "~/.ssh/id_ed25519_mc_panel",
   "sshCommand": "mcops-status-v1",
+  "publicStatusURL": "https://blog.mickeymiao.cn/mc-status/status.json",
   "lyricsRefreshSeconds": 1,
   "systemRefreshSeconds": 3,
-  "remoteRefreshSeconds": 15
+  "remoteRefreshSeconds": 60
 }
