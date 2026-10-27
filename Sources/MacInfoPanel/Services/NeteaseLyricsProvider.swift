@@ -61,6 +61,9 @@ actor NeteaseLyricsProvider {
             cache[key] = CacheEntry(lines: lines, expiresAt: Date().addingTimeInterval(7 * 86_400))
             return lines
         } catch {
+            if Task.isCancelled || (error as? URLError)?.code == .cancelled {
+                throw CancellationError()
+            }
             cache[key] = CacheEntry(lines: [], expiresAt: Date().addingTimeInterval(60))
             throw error
         }

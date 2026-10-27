@@ -17,6 +17,25 @@ struct PanelConfiguration: Codable, Sendable {
         var enabled: Bool
         var mediaControlPath: String?
         var provider: String
+
+        private enum CodingKeys: String, CodingKey {
+            case enabled
+            case mediaControlPath
+            case provider
+        }
+
+        init(enabled: Bool, mediaControlPath: String?, provider: String) {
+            self.enabled = enabled
+            self.mediaControlPath = mediaControlPath
+            self.provider = provider
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            enabled = try container.decodeIfPresent(Bool.self, forKey: .enabled) ?? true
+            mediaControlPath = try container.decodeIfPresent(String.self, forKey: .mediaControlPath)
+            provider = try container.decodeIfPresent(String.self, forKey: .provider) ?? "netease"
+        }
     }
 
     struct Volume: Codable, Sendable, Identifiable {
