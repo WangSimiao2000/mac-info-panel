@@ -1,0 +1,16 @@
+#!/bin/sh
+set -efu
+
+PATH=/usr/bin:/bin
+export PATH
+unset ENV BASH_ENV CDPATH
+
+case "${SSH_ORIGINAL_COMMAND:-}" in
+  mcops-status-v1)
+    exec /usr/bin/timeout 8 /usr/local/libexec/mcops-panel-status.py
+    ;;
+  *)
+    printf '%s\n' '{"error":"command_not_allowed"}'
+    exit 64
+    ;;
+esac

@@ -1,0 +1,11 @@
+{
+  "screenName": "Wokyis",
+  "lyricsURL": "http://127.0.0.1:27270/snapshot",
+  "sshHost": "mc.mickeymiao.cn",
+  "sshUser": "mickeymiao",
+  "sshKeyPath": "~/.ssh/id_ed25519_mc_panel",
+  "sshCommand": "mcops-status-v1",
+  "lyricsRefreshSeconds": 1,
+  "systemRefreshSeconds": 3,
+  "remoteRefreshSeconds": 15
+}
