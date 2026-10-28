@@ -164,12 +164,18 @@ The local MC Ops repository now exists at:
 /Volumes/exSSD/Projects/info-panel-plugin-mcops
 ```
 
-Its initial commit is `2a6b9ce`. Rust tests, collector tests, WASM build,
-real Extism ABI smoke testing, deterministic unsigned packaging, and local
-package validation pass. Online refresh remains intentionally disabled until
-the host exposes its permission-checked HTTP client to guest plugins. The
-manifest identity, source URL, network origin, production signature, remote
-repository, push, and release remain unapproved placeholders.
+Its initial commit is `2a6b9ce`; security fixes are in `56c9ede`.
+Seventeen Rust tests and nine collector/dispatcher tests pass. The WASM build,
+structured import allowlist, real Extism ABI smoke test, deterministic unsigned
+packaging, local package validation, and offline license/source checks pass.
+The live RustSec advisory fetch could not be verified because GitHub was
+unreachable after two attempts. Independent reviews found and drove fixes for
+collector environment isolation, redirects, protocol lengths, ABI input/text
+bounds, cross-file drift, CI credentials, and release permissions.
+Online refresh remains intentionally disabled until the host exposes its
+permission-checked HTTP client to guest plugins. The manifest identity, source
+URL, network origin, production signature, remote repository, push, and release
+remain unapproved placeholders.
 
 Prompts for these work items are under `.kiro/handoff/prompts/`.
 
