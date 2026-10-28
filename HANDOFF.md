@@ -153,8 +153,23 @@ If a constraint must change, update requirements, design, tasks, and this file i
 
 ## Recommended execution order
 
-1. Implement remaining native platform services.
-2. Create MC Ops as a separate repository only after user approval for remote repository creation.
+1. Expose the permission-checked `panel-http` client through a versioned guest HTTP ABI.
+2. Finish MC Ops in its approved local independent repository.
+3. Implement remaining native platform services.
+4. Create a remote MC Ops repository only after separate user approval.
+
+The local MC Ops repository now exists at:
+
+```text
+/Volumes/exSSD/Projects/info-panel-plugin-mcops
+```
+
+Its initial commit is `2a6b9ce`. Rust tests, collector tests, WASM build,
+real Extism ABI smoke testing, deterministic unsigned packaging, and local
+package validation pass. Online refresh remains intentionally disabled until
+the host exposes its permission-checked HTTP client to guest plugins. The
+manifest identity, source URL, network origin, production signature, remote
+repository, push, and release remain unapproved placeholders.
 
 Prompts for these work items are under `.kiro/handoff/prompts/`.
 
